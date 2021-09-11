@@ -27,7 +27,14 @@ mongoose.connect('mongodb://localhost/testChat', {useNewUrlParser: true, useUnif
 });
 
 const User = require('./models/User.js');
+const Room = require('./models/Room.js');
 
+const rooms = [{name: 'Math'}, {name: 'Biology'}, {name: 'History'}];
+// Room.create(rooms ).then( (room) => {
+//     console.log(room);
+// }).catch( (err) => {
+//     console.log(err);
+// });
 
 
 
@@ -41,26 +48,35 @@ const wrap = middleware => (socket, next) => middleware(socket.request, {}, next
 io.use(wrap(session));
 
 
-let roomTest = 'test';
-
-
 io.on('connection', (socket) => {
     const connectedUser = socket.request.session.user;
     if(connectedUser == null) return socket.disconnect();
-    socket.join(roomTest);
+
+    // Add user to all rooms 
+    rooms.forEach( room => socket.join(room.name));
+
+    socket.emit('available rooms', rooms);
 
     socket.on('disconnect', () => {
-        console.log('User Disconnected');
+        console.log(`User ${connectedUser.username} Disconnected`);
     });
     
     socket.on('chat message', (msg) => {
-        msg.body += ' from server';
         msg.username = connectedUser.username;
         console.log(msg);
-        socket.to(msg.room).emit('chat message', msg);
+        Room.findOne({name: msg.room.name }).then( (foundRoom) => {
+            console.log(foundRoom);
+            if(foundRoom == null) return socket.emit('error', 'Room not found');
+            if(foundRoom.status == 'public') {
+                socket.to(msg.room.name).emit('chat message', msg);
+            } else {
+                socket.emit('error', 'later');
+            } 
+        });
+
     });
     
-    console.log(`${connectedUser.username} is connected`);
+    console.log(`User ${connectedUser.username} is connected`);
 });
 
 
