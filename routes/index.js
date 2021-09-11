@@ -6,11 +6,11 @@ const expressSession    = require('express-session');
 const saltRounds        = 10;
 const User              = require('../models/User.js');
 
-router.use(expressSession({
-    secret: 'nothnsnfan323hu3@R3nTG$3f32fs',
-    resave: false,
-    saveUninitialized: false
-}));
+// router.use(expressSession({
+//     secret: 'nothnsnfan323hu3@R3nTG$3f32fs',
+//     resave: false,
+//     saveUninitialized: false,
+// }));
 
 router.use(express.urlencoded({ extended: true }));
 router.use(express.static('public'));
@@ -36,6 +36,7 @@ router.post('/signup', (req, res) => {
     }).then( (userCreated) => {
         return res.redirect('/login');
     }).catch( (err) => {
+        if(err.name != 'user') err.message = 'internal error';
         res.redirect(`/signup?error=${err.message}`);
     });
 
@@ -48,23 +49,24 @@ router.get('/login', (req, res) => {
 
 router.post('/login', (req, res) => {
     const user = req.body.user;
-    let userID;
+    let loggedInUser;
     User.findOne({ username: user.username }).then( (userFound) => {
 
         if(userFound == null) 
             return bcyrpt.compare('icantremeber', '$2b$10$DHgmPDyXukbf3gKPhA6WhOiFst5PUtjhzgTsIv0TyyCHuaJJ4TrAW');
-            userID = userFound.id;
+        loggedInUser = userFound;
         return bcyrpt.compare(user.password, userFound.password);
 
     }).then( (isPasswordCorrect) => {
         if(isPasswordCorrect) {
-            req.session.userID = userID;
+            req.session.user = {};
+            req.session.user.id = loggedInUser.id;
+            req.session.user.username = loggedInUser.username;
             res.redirect('/');
         }else {
             throw makeError('user', 'Wrong username or password');
         }
     }).catch( (err) => {
-        console.log(err);
         if(err.name != 'user') err.message = 'internal error';
         res.redirect(`/login?error=${err.message}`);
     });
@@ -80,9 +82,8 @@ function makeError(name, msg) {
 
 // Checks if the user is authenticated. If true the flow continues normally, else redirects them to the login page.
 function isAuthenticated(req, res, next) {
-    console.log(req.session);
-    if(!req.session.userID) return res.redirect(`/login?msg=${encodeURIComponent('You must be logged in.')}`);
-    User.findById(req.session.userID).then( (user) => {
+    if(!req.session.user || !req.session.user.id) return res.redirect(`/login?msg=${encodeURIComponent('You must be logged in.')}`);
+    User.findById(req.session.user.id).then( (user) => {
         if(user == null) return res.redirect(`/login?msg=${encodeURIComponent('You must be logged in.')}`);
         else return next();
     });
