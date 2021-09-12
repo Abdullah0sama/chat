@@ -19,7 +19,7 @@ sendBtn.addEventListener('click', () => {
         user: me,
         time: Date.now()
     };
-
+    if(msg.body == '' || msg.room.name == null) return;
     addMessage(msg);
     socket.emit('chat message', msg);
 
@@ -108,9 +108,15 @@ function addMessageToStorage(msg) {
 
 // Create html tag for message
 function createMsgNode(msg) {
-    return `<div class="d-flex fs-6 bg-dark text-light">
-                <span class="align-self-center text-center">${msg.user.username}</span>
-                <p class="m-0 align-self-stretch bg-light p-2 text-dark">${msg.body}</p>
-                <span class="align-self-end text-center">${new Date(msg.time).toLocaleString()}</span>
-            </div>`;
+    let meClass = '';
+    if(msg.user.username == me.username) meClass = 'me';
+    return `<div class="d-flex fs-6 align-items-stretch  ${meClass} message  ">
+                <div class="user-name align-middle d-flex align-items-center  text-dark">
+                    <span class="text-center w-100">${msg.user.username}</span>
+                </div>
+                <p class="m-0 bg-light text-dark">${msg.body}<br>
+                <span class="float-end">${new Date(msg.time).toLocaleString()}</span></p>
+            </div>
+                `;
 }
+
