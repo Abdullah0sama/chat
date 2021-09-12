@@ -56,13 +56,15 @@ io.on('connection', (socket) => {
     rooms.forEach( room => socket.join(room.name));
 
     socket.emit('available rooms', rooms);
+    socket.emit('whoami', { username: connectedUser.username });
 
     socket.on('disconnect', () => {
         console.log(`User ${connectedUser.username} Disconnected`);
     });
     
     socket.on('chat message', (msg) => {
-        msg.username = connectedUser.username;
+        msg.user.username = connectedUser.username;
+        msg.time = Date.now();
         console.log(msg);
         Room.findOne({name: msg.room.name }).then( (foundRoom) => {
             console.log(foundRoom);
