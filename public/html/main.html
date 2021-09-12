@@ -4,14 +4,37 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" integrity="sha384-KyZXEAg3QhqLMpG8r+8fhAXLRk2vvoC2f3B09zVXn8CA5QIVfZOJ3BCsw2P0p/We" crossorigin="anonymous">
+    <link href="./css/main.css" rel="stylesheet">
     <title>Chat</title>
 </head>
 <body>
-    <h1>Hello World</h1>
-    <input type="text" class="send" name="roomName">
-    <input type="text" class="send" name="message">
+    <div class="container d-flex">
 
-    <button id="sendButton">Send</button>
+        <div class="rooms bg-dark w-25 d-flex flex-column">
+            <h3 class="text-center p-3 my-0 bg-dark text-light border-bottom border-info ">Available Rooms</h3>
+        </div>
+
+        <div class="chat bg-dark w-75 d-flex flex-column">
+
+            <div class="chat-messages flex-fill">
+<!-- 
+                <div class="d-flex fs-6 bg-dark text-light">
+                    <span class="align-self-center text-center">Name</span>
+                    <p class="m-0 align-self-stretch bg-light p-2 text-dark">Lorem ipsum dolor sit amet consectetur adipisicing elit. Animi iure sit recusandae magnam deleniti ipsam accusantium in voluptates nemo velit.vel dolorem mollitia minus eum. Doloribus consequatur dicta tempore velit necessitatibus dolore eum aliquam repellat quibusdam.</p>
+                    <span class="align-self-end text-center">Time</span>
+                </div> -->
+
+            </div>
+
+            <div class="input-group">
+                <input type="text" class="form-control p-3 rounded-0" placeholder="Message" id="message">
+                <button class="btn btn-dark" type="button" id="sendBtn">Button</button>
+            </div>
+
+        </div>
+    </div>
+
     <script src='/socket.io/socket.io.js'></script>
     <script src='/js/main.js'></script>
 </body>
