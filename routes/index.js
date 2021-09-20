@@ -2,15 +2,11 @@ const express           = require('express');
 const bcyrpt            = require('bcrypt');
 const router            = express.Router();
 const path              = require('path');
-const expressSession    = require('express-session');
 const saltRounds        = 10;
 const User              = require('../models/User.js');
+const Room              = require('../models/Room.js');
+const RoomMember        = require('../models/RoomMember.js');
 
-// router.use(expressSession({
-//     secret: 'nothnsnfan323hu3@R3nTG$3f32fs',
-//     resave: false,
-//     saveUninitialized: false,
-// }));
 
 router.use(express.urlencoded({ extended: true }));
 router.use(express.static('public'));
@@ -72,6 +68,57 @@ router.post('/login', (req, res) => {
     });
 
 });
+
+
+// Join Room using Id 
+router.post('/room/:roomID/join/', isAuthenticated, (req, res) => {
+    const joinRequest = {
+        userID: req.session.user.id, 
+        roomID: req.params.roomID,
+        password: req.body.roomPassword
+    }
+
+    Room.findById( req.params.roomID ).then( (foundRoom) => {
+
+        if(foundRoom == null) throw makeError('user', 'Room not found.');
+        if(foundRoom.status == 'private') {
+            if (!bcyrpt.compareSync(joinRequest.password, foundRoom.password)) return res.status(401).send({ msg: 'Wrong password.' });
+        }
+
+        return RoomMember.create( joinRequest );
+    }).then( (joinStatus) => {
+
+        res.send({ joinStatus });
+
+    }).catch( (err) => {
+        console.log(err);
+        if(err.name != 'user') res.status(500).send();
+        else res.status(422).send({ msg: err.message });
+
+    });
+
+});
+
+router.post('/room/', (req, res) => {
+    let roomInfo = req.body.room;
+    if (roomInfo.status == 'private') roomInfo.password = bcyrpt.hashSync(roomInfo.password, saltRounds);
+    Room.create(roomInfo).then( (room) => {
+
+        return RoomMember.create({
+            roomID: room._id,
+            userID: req.session.user.id
+        });
+    }).then( (joinRequest) => {
+
+        res.send({ msg: "Created Successfully"});
+
+    }).catch( (err) => {
+        console.log(err);
+        res.status(500).send();
+    });
+
+});
+
 
 
 function makeError(name, msg) {
