@@ -77,24 +77,23 @@ router.post('/room/:roomID/join/', isAuthenticated, (req, res) => {
         roomID: req.params.roomID,
         password: req.body.roomPassword
     }
-
     Room.findById( req.params.roomID ).then( (foundRoom) => {
-
-        if(foundRoom == null) throw makeError('user', 'Room not found.');
+        
+        if(foundRoom == null) {
+            res.statusMessage = "Room not found";
+            return res.status(400).send();
+        }
         if(foundRoom.status == 'private') {
-            if (!bcyrpt.compareSync(joinRequest.password, foundRoom.password)) return res.status(401).send({ msg: 'Wrong password.' });
+            if (joinRequest.password == '' || !bcyrpt.compareSync(joinRequest.password, foundRoom.password)) 
+                return res.status(401).send('Wrong password.');
         }
 
         return RoomMember.create( joinRequest );
     }).then( (joinStatus) => {
-
-        res.send({ joinStatus });
-
+        res.send(joinStatus);
     }).catch( (err) => {
         console.log(err);
-        if(err.name != 'user') res.status(500).send();
-        else res.status(422).send({ msg: err.message });
-
+        res.status(500).send();
     });
 
 });

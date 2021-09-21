@@ -46,13 +46,12 @@ body {
     border-bottom: 1px solid #212529;
 }
 .me .user-name{
-    background-color: darkred !important;
+    background-color: slategray !important;
     color: #f8f9fa !important;
 }
 
 .user-name {
-    background-color: lightgray;
-    color: #212529;
+    background-color: dimgray   ;
 }
 
 .other p{
@@ -62,4 +61,8 @@ body {
 
 #sendBtn {
     border-top: 1px solid #0dcaf0;
+}
+
+.room-header {
+    font-weight: bold;
 }

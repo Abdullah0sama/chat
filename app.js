@@ -28,13 +28,8 @@ mongoose.connect('mongodb://localhost/testChat', {useNewUrlParser: true, useUnif
 
 const User = require('./models/User.js');
 const Room = require('./models/Room.js');
+const RoomMember = require('./models/RoomMember.js');
 
-const rooms = [{name: 'Math'}, {name: 'Biology'}, {name: 'History'}];
-// Room.create(rooms ).then( (room) => {
-//     console.log(room);
-// }).catch( (err) => {
-//     console.log(err);
-// });
 
 
 
@@ -48,14 +43,41 @@ const wrap = middleware => (socket, next) => middleware(socket.request, {}, next
 io.use(wrap(session));
 
 
-io.on('connection', (socket) => {
+io.on('connection', async (socket) => {
     const connectedUser = socket.request.session.user;
     if(connectedUser == null) return socket.disconnect();
 
-    // Add user to all rooms 
-    rooms.forEach( room => socket.join(room.name));
+    let joinedRoomsID = [];
+    let joinedRooms = [];
+    let allRooms = [];
+    let otherRooms = [];
 
-    socket.emit('available rooms', rooms);
+    await RoomMember.find({ userID: connectedUser.id }).then( (joinRequests) => {
+        joinRequests.forEach(request => {
+            socket.join(request.roomID);
+            joinedRoomsID.push(request.roomID);
+        });
+    }).catch( (err) => {
+        console.log(err); 
+    });
+
+
+    await Room.find({ }).then( rooms => {
+        allRooms = rooms;
+    });
+
+    allRooms.forEach( room => {
+        if (joinedRoomsID.includes(room.id)) joinedRooms.push(room);
+        else otherRooms.push(room);
+    });
+
+    socket.emit('joined rooms', joinedRooms);
+
+    socket.emit('all rooms', allRooms);
+
+    socket.emit('other rooms', otherRooms);
+    
+
     socket.emit('whoami', { username: connectedUser.username });
 
     socket.on('disconnect', () => {
@@ -63,17 +85,17 @@ io.on('connection', (socket) => {
     });
     
     socket.on('chat message', (msg) => {
-        msg.user.username = connectedUser.username;
+        if(msg.body == '') return; 
+
+        // Not trusting the user
+        msg.user = connectedUser;
         msg.time = Date.now();
-        console.log(msg);
-        Room.findOne({name: msg.room.name }).then( (foundRoom) => {
-            console.log(foundRoom);
-            if(foundRoom == null) return socket.emit('error', 'Room not found');
-            if(foundRoom.status == 'public') {
-                socket.to(msg.room.name).emit('chat message', msg);
-            } else {
-                socket.emit('error', 'later');
-            } 
+        
+        RoomMember.findOne({ roomID: msg.room.id, userID: msg.user.id }).then( (foundRelation) => {
+            console.log(msg);
+            if(foundRelation == null) socket.emit('error', 'You are not joined in this room.');
+            else socket.to(msg.room.id).emit('chat message', msg);
+
         });
 
     });
