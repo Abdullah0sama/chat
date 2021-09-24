@@ -14,6 +14,8 @@ let me;
 let allRooms;
 
 
+socket.emit('refresh rooms');
+
 sendBtn.addEventListener('click', () => {
     let msg = {
         room: {
@@ -24,17 +26,23 @@ sendBtn.addEventListener('click', () => {
         user: me,
         time: Date.now()
     };
-
+    
     if(msg.body == '' || msg.room.name == null) return;
-
+    
     addMessage(msg);
     socket.emit('chat message', msg);
-
+    
     inputMessage.value = '';
 });
 
 
 
+socket.on('rooms', (room, joinedRooms, otherRooms) => {
+    allRooms = room;
+    otherRoomsContainer.innerHTML = otherRooms.map(room => roomNode(room, 1)).join('');
+    joinedRoomsContainer.innerHTML = joinedRooms.map(room => roomNode(room, 0)).join('');
+
+});
 
 socket.on('chat message', (msg) => {
     addMessage(msg);
@@ -47,22 +55,6 @@ socket.once('whoami',  (user) => {
 });
 
 
-
-socket.on('other rooms', (otherRooms) => {
-
-    otherRoomsContainer.innerHTML = otherRooms.map(room => roomNode(room, 1)).join('');
-
-});
-
-socket.on('joined rooms', (joinedRooms) => {
-    
-    joinedRoomsContainer.innerHTML = joinedRooms.map(room => roomNode(room, 0)).join('');
-
-});
-
-socket.on('all rooms', (rooms) => {
-    allRooms = rooms;
-});
 
 
 socket.on('error', (msg) => {
@@ -129,7 +121,7 @@ function createMsgNode(msg) {
                 <div class="user-name align-middle d-flex align-items-center  text-dark">
                     <span class="text-center w-100">${msg.user.username}</span>
                 </div>
-                <p class="m-0 bg-light text-dark text-break">${msg.body}<br>
+                <p class="m-0  text-light text-break">${msg.body}<br>
                 <span class="float-end">${new Date(msg.time).toLocaleString()}</span></p>
             </div>
                 `;
@@ -186,3 +178,28 @@ function sendJoinRequest(event) {
 };
 
 joinModalButton.addEventListener('click', sendJoinRequest);
+
+
+const modalCreateForm = document.querySelector('#createModalForm');
+
+modalCreateForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const data = new URLSearchParams( new FormData(event.target) );
+    if (!data.has('status')) data.set('room[status]', 'public');
+    fetch('/room', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: data
+    }).then( (res) => {
+        if (res.status == 200) {
+            document.querySelector('#createModal .btn-close').click();
+        }
+        return res.json();
+    }).then( (jso) => {
+        console.log(jso);
+    }).catch ( (err) => {
+        console.log(err);
+    });
+});

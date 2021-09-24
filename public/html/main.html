@@ -10,29 +10,43 @@
     <title>Chat</title>
 </head>
 <body>
-    <div class="container d-flex">
-
-        <div class="rooms bg-dark w-25 d-flex flex-column">         
-            <h3 class="text-center p-3 my-0 bg-dark text-light border-bottom border-info">Joined Rooms</h3>
-            <div class="joinedRooms overflow-auto"></div>
-
-            <h3 class="text-center p-3 my-0 bg-dark text-light border-bottom border-info">Available Rooms</h3> 
-            <div class="otherRooms overflow-auto"></div>
-        </div>
-
-        <div class="chat bg-dark w-75 d-flex flex-column">
-            <h3 class="text-light border-bottom border-info p-3 room-header m-0"> Welcome </h3>
-            <div class="chat-messages flex-fill overflow-auto">
+    
+    <div class="container">
+        <ul class="nav justify-content-end">
+            <li class="nav-item">
+                <a class="nav-link btn text-info" data-bs-toggle="modal" data-bs-target="#createModal" type="button">Create a Room</a>
+            </li>
+            <li class="nav-item">
+                <form method="POST" action="/logout">
+                    <button class="text-danger btn">Log out</button>
+                </form>
+            </li>
+        </ul>
+        <div class="d-flex  chat-box">
+            <div class="rooms bg-dark w-25 d-flex flex-column">         
+                <h3 class="text-center p-3 my-0 bg-dark text-light border-bottom border-info">Joined Rooms</h3>
+                <div class="joinedRooms overflow-auto"></div>
+                
+                <h3 class="text-center p-3 my-0 bg-dark text-light border-bottom border-info">Available Rooms</h3> 
+                <div class="otherRooms overflow-auto"></div>
             </div>
-            <div class="input-group">
-                <input type="text" class="form-control p-3 rounded-0" placeholder="Message" id="message">
-                <button class="btn btn-dark" type="button" id="sendBtn">Button</button>
+            
+            <div class="chat bg-dark w-75 d-flex flex-column">
+                <h3 class="text-light border-bottom border-info p-3 room-header m-0"> Welcome </h3>
+                <div class="chat-messages flex-fill overflow-auto">
+                </div>
+                <div class="input-group">
+                    <input type="text" class="form-control p-3 rounded-0" placeholder="Message" id="message">
+                    <button class="btn btn-light text-dark  rounded-0" type="button" id="sendBtn">Send</button>
+                </div>
             </div>
-        </div>
 
+        </div>
+        
+        
     </div>
     
-
+    
     <div class="modal fade" id="joinModal" tabindex="-1" >
         <div class="modal-dialog">
             <div class="modal-content bg-dark text-light">
@@ -57,13 +71,48 @@
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer bg-dark border-info">
+                <div class="modal-footer border-info">
                     <button type="button" class="btn btn-info" id="modal-submit">Join Room</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <div class="modal fade" id="createModal" tabindex="-1" >
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark text-light">
+                <div class="modal-header border-info">
+                    <h5 class="modal-title">Create a Room</h5>
+                    <button type="button" class="btn-close btn-close-white  " data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                
+                <div class="modal-body" >
+                    <form id="createModalForm" autocomplete="off">
+                        <div class="form-floating mb-3 text-dark">
+                            <input type="text" class="form-control" id="createName" placeholder="" name="room[name]">
+                            <label for="createName">Room Name</label>
+                        </div>
+                        
+
+                        <div class="form-check my-3">
+                            <input class="form-check-input" type="checkbox" name="room[status]" value="private" data-bs-toggle="collapse" data-bs-target="#createPassword" role="button">
+                            <label class="form-check-label">
+                                Private
+                            </label>
+                        </div>
+
+                        <div class="form-floating text-dark collapse" id="createPassword">
+                            <input type="password" class="form-control" id="createPassword" placeholder="" name="room[password]">
+                            <label for="createPassword">Room Password</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-info">
+                    <button type="submit" class="btn btn-info" form="createModalForm">Create Room</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src='/socket.io/socket.io.js'></script>
     <script src='/js/main.js'></script>
