@@ -185,7 +185,7 @@ const modalCreateForm = document.querySelector('#createModalForm');
 modalCreateForm.addEventListener('submit', (event) => {
     event.preventDefault();
     const data = new URLSearchParams( new FormData(event.target) );
-    if (!data.has('status')) data.set('room[status]', 'public');
+    if (!data.has('room[status]')) data.set('room[status]', 'public');
     fetch('/room', {
         method: 'POST',
         headers: {
@@ -195,6 +195,7 @@ modalCreateForm.addEventListener('submit', (event) => {
     }).then( (res) => {
         if (res.status == 200) {
             document.querySelector('#createModal .btn-close').click();
+            socket.emit('refresh rooms');
         }
         return res.json();
     }).then( (jso) => {
