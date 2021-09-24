@@ -20,6 +20,11 @@ router.get('/signup', (req, res) => {
     res.sendFile(htmlPath + '/signup.html');
 });
 
+router.post('/logout', (req, res) => {
+    req.session.destroy();
+    res.redirect('/login');
+});
+
 router.post('/signup', (req, res) => {
     const user = req.body.user;
 
