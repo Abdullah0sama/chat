@@ -6,7 +6,8 @@ const saltRounds        = 10;
 const User              = require('../models/User.js');
 const Room              = require('../models/Room.js');
 const RoomMember        = require('../models/RoomMember.js');
-
+const validationSchema  = require('../validation.js');
+const Joi               = require('joi');
 
 router.use(express.urlencoded({ extended: true }));
 router.use(express.static('public'));
@@ -14,6 +15,10 @@ const htmlPath = path.resolve('./public/html');
 
 router.get('/', isAuthenticated, (req, res) => {
     res.sendFile(htmlPath + '/main.html');
+});
+
+router.get('/login', (req, res) => {
+    res.sendFile(htmlPath + '/login.html');
 });
 
 router.get('/signup', (req, res) => {
@@ -25,26 +30,26 @@ router.post('/logout', (req, res) => {
     res.redirect('/login');
 });
 
-router.post('/signup', (req, res) => {
-    const user = req.body.user;
+router.post('/signup', async (req, res) => {
 
-    User.findOne({ username: user.username }).then( (usernameStatus) => {
-        if(usernameStatus != null) throw makeError('user', 'Username already used'); 
-        return  bcyrpt.hash(user.password, saltRounds);
-    }).then( (hash) => {
-        user.password = hash;
-        return User.create(user);
-    }).then( (userCreated) => {
-        return res.redirect('/login');
-    }).catch( (err) => {
-        if(err.name != 'user') err.message = 'internal error';
-        res.redirect(`/signup?error=${err.message}`);
-    });
+    const user = req.body.user || {};
 
-});
+    try {
 
-router.get('/login', (req, res) => {
-    res.sendFile(htmlPath + '/login.html');
+            const userValidation = await validationSchema.userValidationSchema.validateAsync(user);
+            const isUsernameAvailable = await User.findOne({ username: user.username });
+            if (isUsernameAvailable) throw new UserError( 'Username already used' );
+        
+            user.password = await bcyrpt.hash(user.password, saltRounds);
+            
+            const createdUser = await User.create(user);
+            res.status(200).send({ msg: 'User Created Successfully' }); 
+
+    } catch (err) {
+        if (err instanceof UserError || err instanceof Joi.ValidationError) return res.status(422).send({ msg: err.message });
+        else return res.status(500).send();
+    }
+
 });
 
 
@@ -52,7 +57,6 @@ router.post('/login', (req, res) => {
     const user = req.body.user;
     let loggedInUser;
     User.findOne({ username: user.username }).then( (userFound) => {
-
         if(userFound == null) 
             return bcyrpt.compare('icantremeber', '$2b$10$DHgmPDyXukbf3gKPhA6WhOiFst5PUtjhzgTsIv0TyyCHuaJJ4TrAW');
         loggedInUser = userFound;
@@ -82,6 +86,7 @@ router.post('/room/:roomID/join/', isAuthenticated, (req, res) => {
         roomID: req.params.roomID,
         password: req.body.roomPassword
     }
+
     Room.findById( req.params.roomID ).then( (foundRoom) => {
         
         if(foundRoom == null) {
@@ -103,28 +108,43 @@ router.post('/room/:roomID/join/', isAuthenticated, (req, res) => {
 
 });
 
-router.post('/room/', (req, res) => {
-    let roomInfo = req.body.room;
-    if (roomInfo.status == 'private') roomInfo.password = bcyrpt.hashSync(roomInfo.password, saltRounds);
-    Room.create(roomInfo).then( (room) => {
+// Creating a room
+router.post('/room/', isAuthenticated, async (req, res) => {
 
-        return RoomMember.create({
-            roomID: room._id,
-            userID: req.session.user.id
-        });
-    }).then( (joinRequest) => {
+    console.log(roomInfo);
+    try {
 
-        res.send({ msg: "Created Successfully"});
+        const roomValidation = await validationSchema.RoomValidationSchema.validateAsync(roomInfo);
+        
+        // Hashing password if room is private
+        if (roomInfo.status == 'private') roomInfo.password = await bcyrpt.hash(roomInfo.password, saltRounds);
 
-    }).catch( (err) => {
+        let roomData = await Room.create(roomInfo);
+
+        let joinRequest = await RoomMember.create({
+                                roomID: roomData._id,
+                                userID: req.session.user.id
+                            });
+        return res.status(200).send({ msg: "Created Room Successfully" });
+
+    } catch (err) {
         console.log(err);
-        res.status(500).send();
-    });
+        if (err instanceof Joi.ValidationError) return res.status(422).send(err.message);
+        else return res.status(500).send();
+    }
 
 });
 
 
 
+
+class UserError extends Error {
+    constructor (message) {
+        super(message);
+        Object.setPrototypeOf(this, new.target.prototype);
+        Error.captureStackTrace(this);
+    }
+}
 function makeError(name, msg) {
     let error = new Error(msg);
     error.name = name;
