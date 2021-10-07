@@ -61,9 +61,9 @@ socket.on('error', (msg) => {
     console.log(msg);
 });
 
-// socket.onAny( (events, ...args) => {
-//     console.log(events, args);
-// });
+socket.onAny( (events, ...args) => {
+    console.log(events, args);
+});
 
 
 
@@ -79,7 +79,6 @@ function selectRoom(event) {
         selectedRoom.node = event.target;
 
         selectedRoom.name = selectedRoom.node.getAttribute('name');
-        
         selectedRoom.node.classList.add('active-chat');
         
         roomHeader.innerHTML = selectedRoom.name;
@@ -132,7 +131,7 @@ function roomNode(room, notJoined) {
     let modalAttributes = '';
     if (notJoined) modalAttributes = 'data-bs-toggle="modal" data-bs-target="#joinModal"';
     return `<div type="button" class="chat-room p-3 text-light" onclick=selectRoom(event) data-name= "${room.name}" data-status="${room.status}" 
-            name=${room.name} id=${room._id} ${modalAttributes}>
+            name="${room.name}" id="${room._id}" ${modalAttributes}>
                 <span>${room.name}</span>
             </div>
         `;
@@ -169,6 +168,7 @@ function sendJoinRequest(event) {
         
         if (res.status == 200) {
             document.querySelector('#joinModal .btn-close').click();
+            socket.emit('refresh rooms');
         }
     }).catch( (err) => {
         console.log(err);
@@ -185,7 +185,7 @@ const modalCreateForm = document.querySelector('#createModalForm');
 modalCreateForm.addEventListener('submit', (event) => {
     event.preventDefault();
     const data = new URLSearchParams( new FormData(event.target) );
-    if (!data.has('room[status]')) data.set('room[status]', 'public');
+    if (!data.has('room[status]')) data.set('room[status]', 'public'), data.delete('room[password]');
     fetch('/room', {
         method: 'POST',
         headers: {
