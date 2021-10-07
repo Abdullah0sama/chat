@@ -5,6 +5,8 @@ const RoomMember    = require('./models/RoomMember');
 const Message       = require('./models/Message');
 const Room          = require('./models/Room');
 
+let AllRooms;
+
 exports.initialize = function (httpServer, session) {
 
     const wrap = middleware => (socket, next) => middleware(socket.request, {}, next);
@@ -18,23 +20,29 @@ exports.initialize = function (httpServer, session) {
         const connectedUser = socket.request.session.user;
 
         if(connectedUser == null) return socket.disconnect();
+
         console.log(connectedUser);
         socket.join(connectedUser.id);
+
         socket.on('refresh rooms', async () => {
             
             let joinedRoomsId = await findMyRoomsIds(connectedUser.id);
-            let allRooms = await Room.find({});
+            if (AllRooms == undefined) AllRooms = await Room.find({});
+
             let joinedRooms = [];
             let otherRooms = [];
-            allRooms.forEach( (room) => {
+
+            AllRooms.forEach( (room) => {
+
                 if (joinedRoomsId.includes(room.id)) {
                     joinedRooms.push(room);
                     socket.join(room.id);
                 } else {
                     otherRooms.push(room);
                 }
+                
             });
-            socket.emit('rooms', allRooms, joinedRooms, otherRooms);
+            socket.emit('rooms', joinedRooms, otherRooms);
         });
         
         
@@ -51,13 +59,15 @@ exports.initialize = function (httpServer, session) {
             msg.time = Date.now();
             
             RoomMember.findOne({ roomID: msg.room.id, userID: msg.user }).then( (foundRelation) => {
-    
+                
+                // Checking if the user is not joined in the room
                 if(foundRelation == null) return socket.emit('error', 'You are not joined in this room.');
     
+                // Saving message to the database
                 Message.create(msg).then((message) => console.log(message)).catch( (err) => console.log(err) );
                 msg.user = connectedUser;
+                // Emiting message to all other users in the room
                 socket.to(msg.room.id).emit('chat message', msg);
-                
             });
             
         });

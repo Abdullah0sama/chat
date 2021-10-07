@@ -11,15 +11,14 @@ const otherRoomsContainer = document.querySelector('.otherRooms');
 const selectedRoom = {};
 const messages = {};
 let me;
-let allRooms;
-
+let joinedRooms = [];
+let otherRooms = [] ;
 
 socket.emit('refresh rooms');
 
 sendBtn.addEventListener('click', () => {
     let msg = {
         room: {
-            name: selectedRoom.name,
             id: selectedRoom.id
         },
         body: inputMessage.value,
@@ -27,7 +26,7 @@ sendBtn.addEventListener('click', () => {
         time: Date.now()
     };
     
-    if(msg.body == '' || msg.room.name == null) return;
+    if(msg.body == '') return;
     
     addMessage(msg);
     socket.emit('chat message', msg);
@@ -37,12 +36,16 @@ sendBtn.addEventListener('click', () => {
 
 
 
-socket.on('rooms', (room, joinedRooms, otherRooms) => {
-    allRooms = room;
-    otherRoomsContainer.innerHTML = otherRooms.map(room => roomNode(room, 1)).join('');
-    joinedRoomsContainer.innerHTML = joinedRooms.map(room => roomNode(room, 0)).join('');
+socket.on('rooms', (joined, other) => {
+
+    otherRoomsContainer.innerHTML = other.map(room => roomNode(room, true)).join('');
+    joinedRoomsContainer.innerHTML = joined.map(room => roomNode(room, false)).join('');
+    
+    joinedRooms = joined;
+    joinedRooms.forEach( (joinedRoom) => getOldMessages(joinedRoom._id) );
 
 });
+
 
 socket.on('chat message', (msg) => {
     addMessage(msg);
@@ -53,8 +56,6 @@ socket.on('chat message', (msg) => {
 socket.once('whoami',  (user) => {
     me = user;
 });
-
-
 
 
 socket.on('error', (msg) => {
@@ -86,19 +87,21 @@ function selectRoom(event) {
 
         if(messages[selectedRoom.id] != null) {
             messagesGroup.innerHTML = messages[selectedRoom.id].map(createMsgNode).join('');
+            messagesGroup.scroll(0, messagesGroup.scrollHeight);
         }
         
     }
 }
 
 
-// Adds message and displays it if it is sent to the selected room 
+// Adds message and displays it is in the selected room     
 function addMessage(msg) {
 
     addMessageToStorage(msg);
 
     if(selectedRoom.id == msg.room.id) {
         messagesGroup.innerHTML += createMsgNode(msg);
+        messagesGroup.scrollTo(0, messagesGroup.scrollHeight);
     }
 
 }
@@ -128,21 +131,22 @@ function createMsgNode(msg) {
 
 
 function roomNode(room, notJoined) {
-    let modalAttributes = '';
-    if (notJoined) modalAttributes = 'data-bs-toggle="modal" data-bs-target="#joinModal"';
-    return `<div type="button" class="chat-room p-3 text-light" onclick=selectRoom(event) data-name= "${room.name}" data-status="${room.status}" 
-            name="${room.name}" id="${room._id}" ${modalAttributes}>
+    let attributes = 'onclick=selectRoom(event)';
+    if (notJoined) attributes = 'data-bs-toggle="modal" data-bs-target="#joinModal"';
+
+    return `<div type="button" class="chat-room p-3 text-light" data-name= "${room.name}" data-status="${room.status}" 
+            name="${room.name}" id="${room._id}" ${attributes} data-id="${room._id}">
                 <span>${room.name}</span>
             </div>
         `;
 }
 
-const joinModal = document.querySelector('#joinModal');
-const joinModalButton = document.querySelector('#joinModal #modal-submit');
-const modalRoomName = document.querySelector('#modal-room-name');
-const modalRoomId = document.querySelector('#modal-room-id');
-const modalRoomPassword = document.querySelector('#modal-room-password');
-const modalRoomPasswordInput = document.querySelector('#modal-room-password input');
+const joinModal                 = document.querySelector('#joinModal');
+const joinModalButton           = document.querySelector('#joinModal #modal-submit');
+const modalRoomName             = document.querySelector('#modal-room-name');
+const modalRoomId               = document.querySelector('#modal-room-id');
+const modalRoomPassword         = document.querySelector('#modal-room-password');
+const modalRoomPasswordInput    = document.querySelector('#modal-room-password input');
 
 joinModal.addEventListener('show.bs.modal', function(event) {
     let button = event.relatedTarget;
@@ -168,7 +172,7 @@ function sendJoinRequest(event) {
         
         if (res.status == 200) {
             document.querySelector('#joinModal .btn-close').click();
-            socket.emit('refresh rooms');
+            document.querySelector(`.otherRooms [data-id='${roomId}']`).remove();
         }
     }).catch( (err) => {
         console.log(err);
@@ -195,12 +199,40 @@ modalCreateForm.addEventListener('submit', (event) => {
     }).then( (res) => {
         if (res.status == 200) {
             document.querySelector('#createModal .btn-close').click();
-            socket.emit('refresh rooms');
+            // socket.emit('refresh rooms');
         }
         return res.json();
-    }).then( (jso) => {
-        console.log(jso);
+    }).then( (json) => {
+        console.log(json);
     }).catch ( (err) => {
         console.log(err);
     });
+});
+
+function getOldMessages (roomId) {
+    
+    return fetch(`/room/${roomId}`)
+        .then( (response) => response.json())
+        .then( (messages) => {
+            messages.forEach(message => {
+                addMessage(message);
+            });
+        })
+        .catch( (err) => {
+            console.log(err);
+        });
+}
+
+socket.on('new room', (roomData) => {
+    
+    otherRooms.push(roomData);
+    otherRoomsContainer.innerHTML += roomNode(roomData, true);
+
+});
+
+socket.on('joined new room', (roomData) => {
+
+    joinedRooms.push(roomData);
+    joinedRoomsContainer.innerHTML += roomNode(roomData, false);
+    getOldMessages(roomData._id);
 });

@@ -4,11 +4,13 @@ const router            = express.Router();
 const path              = require('path');
 const saltRounds        = 10;
 const User              = require('../models/User.js');
+const validationSchema  = require('../validation.js');
+const Joi               = require('joi');
+const io                = require('../socketioEvents.js').getIo();
+
 const Room              = require('../models/Room.js');
 const RoomMember        = require('../models/RoomMember.js');
 const Message           = require('../models/Message.js');
-const validationSchema  = require('../validation.js');
-const Joi               = require('joi');
 
 router.use(express.urlencoded({ extended: true }));
 router.use(express.static('public'));
@@ -32,7 +34,6 @@ router.post('/logout', (req, res) => {
 });
 
 router.post('/signup', async (req, res) => {
-
     const user = req.body.user || {};
 
     try {
@@ -81,37 +82,45 @@ router.post('/login', (req, res) => {
 
 
 // Join Room using room Id 
-router.post('/room/:roomID/join/', isAuthenticated, (req, res) => {
+router.post('/room/:roomID/join/', isAuthenticated, async (req, res) => {
+
     const joinRequest = {
         userID: req.session.user.id, 
         roomID: req.params.roomID,
         password: req.body.roomPassword
     }
-    Room.findById( joinRequest.roomID ).then( (foundRoom) => {
-        
-        if(foundRoom == null) {
-            res.statusMessage = "Room not found";
-            return res.status(400).send();
-        }
-        if(foundRoom.status == 'private') {
-            if (joinRequest.password == '' || !bcyrpt.compareSync(joinRequest.password, foundRoom.password)) 
-                return res.status(401).send('Wrong password.');
-        }
+    try {
 
-        return RoomMember.create( joinRequest );
-    }).then( (joinStatus) => {
-        res.send(joinStatus);
-    }).catch( (err) => {
+        const foundRoom = await Room.findById( joinRequest.roomID );
+            
+        if(foundRoom == null) throw new UserError('Room not Found');
+        
+        if(foundRoom.status == 'private') 
+            if (joinRequest.password == '' || await bcyrpt.compare(joinRequest.password, foundRoom.password)) 
+                throw new UserError('Wrong password');
+        
+        const createRelation = await RoomMember.create( joinRequest );
+        
+        io.to(req.session.user.id).emit('joined new room', foundRoom);
+        
+        io.in(req.session.user.id).socketsJoin(foundRoom._id);
+
+        return res.status(200).send({ msg: "Joined Successfully" });
+
+    } catch (err) {
         console.log(err);
-        res.status(500).send();
-    });
+        if (err instanceof UserError) return res.status(422).send(err.message);
+        else return res.status(500).send();
+
+    };
 
 });
 
 // Creating a room
 router.post('/room/', isAuthenticated, async (req, res) => {
 
-    console.log(roomInfo);
+    const roomInfo = req.body.room || {};
+
     try {
 
         const roomValidation = await validationSchema.RoomValidationSchema.validateAsync(roomInfo);
@@ -125,6 +134,14 @@ router.post('/room/', isAuthenticated, async (req, res) => {
                                 roomID: roomData._id,
                                 userID: req.session.user.id
                             });
+        
+        // Announcing that a new room has been created to all other users
+        io.except(req.session.user.id).emit('new room', roomData);
+        // User joins the created room
+        io.in(req.session.user.id).socketsJoin(roomData._id);
+        // Emiting to the user data of the joined room
+        io.in(req.session.user.id).emit('joined new room', roomData);
+
         return res.status(200).send({ msg: "Created Room Successfully" });
 
     } catch (err) {
@@ -136,7 +153,7 @@ router.post('/room/', isAuthenticated, async (req, res) => {
 });
 
 // Get all messages from a room
-router.get('/room/:roomId', (req, res) => {
+router.get('/room/:roomId', isAuthenticated, (req, res) => {
 
     Message.find({ 'room.id': req.params.roomId }).populate('user', 'username _id').then( (messages) => {
         
