@@ -6,6 +6,7 @@ const saltRounds        = 10;
 const User              = require('../models/User.js');
 const Room              = require('../models/Room.js');
 const RoomMember        = require('../models/RoomMember.js');
+const Message           = require('../models/Message.js');
 const validationSchema  = require('../validation.js');
 const Joi               = require('joi');
 
@@ -79,15 +80,14 @@ router.post('/login', (req, res) => {
 });
 
 
-// Join Room using Id 
+// Join Room using room Id 
 router.post('/room/:roomID/join/', isAuthenticated, (req, res) => {
     const joinRequest = {
         userID: req.session.user.id, 
         roomID: req.params.roomID,
         password: req.body.roomPassword
     }
-
-    Room.findById( req.params.roomID ).then( (foundRoom) => {
+    Room.findById( joinRequest.roomID ).then( (foundRoom) => {
         
         if(foundRoom == null) {
             res.statusMessage = "Room not found";
@@ -135,7 +135,20 @@ router.post('/room/', isAuthenticated, async (req, res) => {
 
 });
 
+// Get all messages from a room
+router.get('/room/:roomId', (req, res) => {
 
+    Message.find({ 'room.id': req.params.roomId }).populate('user', 'username _id').then( (messages) => {
+        
+        return res.status(200).send( messages );
+
+    }).catch( (err) => {
+        
+        return res.status(500).send();
+
+    });
+
+});
 
 
 class UserError extends Error {
