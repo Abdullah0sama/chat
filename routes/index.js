@@ -16,7 +16,7 @@ router.use(express.urlencoded({ extended: true }));
 router.use(express.static('public'));
 const htmlPath = path.resolve('./public/html');
 
-router.get('/', isAuthenticated, (req, res) => {
+router.get('/', pageAuthenticationProtection, (req, res) => {
     res.sendFile(htmlPath + '/main.html');
 });
 
@@ -55,29 +55,27 @@ router.post('/signup', async (req, res) => {
 });
 
 
-router.post('/login', (req, res) => {
-    const user = req.body.user;
-    let loggedInUser;
-    User.findOne({ username: user.username }).then( (userFound) => {
-        if(userFound == null) 
-            return bcyrpt.compare('icantremeber', '$2b$10$DHgmPDyXukbf3gKPhA6WhOiFst5PUtjhzgTsIv0TyyCHuaJJ4TrAW');
-        loggedInUser = userFound;
-        return bcyrpt.compare(user.password, userFound.password);
+router.post('/login', async (req, res) => {
+    try {
+        const user = req.body.user;
+        let foundUser = await User.findOne({ username: user.username });
+        let isPasswordCorrect;
+            if(foundUser == null) 
+                // Wasting time
+                isPasswordCorrect = await bcyrpt.compare('icantremeber', '$2b$10$DHgmPDyXukbf3gKPhA6WhOiFst5PUtjhzgTsIv0TyyCHuaJJ4TrAW');
+            else isPasswordCorrect = bcyrpt.compare(user.password, foundUser.password);
+    
+        if (isPasswordCorrect) {
+                req.session.user = {};
+                req.session.user.id = foundUser.id;
+                req.session.user.username = foundUser.username;
+                return res.status(200).send({ msg: 'Logged in successfully' });
+            }else throw new UserError('Wrong username or password');
 
-    }).then( (isPasswordCorrect) => {
-        if(isPasswordCorrect) {
-            req.session.user = {};
-            req.session.user.id = loggedInUser.id;
-            req.session.user.username = loggedInUser.username;
-            res.redirect('/');
-        }else {
-            throw makeError('user', 'Wrong username or password');
-        }
-    }).catch( (err) => {
-        if(err.name != 'user') err.message = 'internal error';
-        res.redirect(`/login?error=${err.message}`);
-    });
-
+    } catch (err) {
+        if (err instanceof UserError ) return res.status(401).send({ msg: err.message });
+        else return res.status(500).send();
+    }
 });
 
 
@@ -101,8 +99,9 @@ router.post('/room/:roomID/join/', isAuthenticated, async (req, res) => {
         
         const createRelation = await RoomMember.create( joinRequest );
         
+        // Emiting joined room
         io.to(req.session.user.id).emit('joined new room', foundRoom);
-        
+        // Joining room
         io.in(req.session.user.id).socketsJoin(foundRoom._id);
 
         return res.status(200).send({ msg: "Joined Successfully" });
@@ -181,13 +180,15 @@ function makeError(name, msg) {
     return error;
 }
 
-// Checks if the user is authenticated. If true the flow continues normally, else redirects them to the login page.
-function isAuthenticated(req, res, next) {
-    if(!req.session.user || !req.session.user.id) return res.redirect(`/login?msg=${encodeURIComponent('You must be logged in.')}`);
-    User.findById(req.session.user.id).then( (user) => {
-        if(user == null) return res.redirect(`/login?msg=${encodeURIComponent('You must be logged in.')}`);
-        else return next();
-    });
-}
 
+// Checks if users are authenticated and sends a status code if not
+function isAuthenticated (req, res, next) {
+    if(!req.session.user) return res.status(401).send();
+    else return next();
+}
+// Checks if users are authenticated and redirects them if not
+function pageAuthenticationProtection (req, res, next) {
+    if (!req.session.user) return res.redirect('/login');
+    else return next();
+}
 module.exports = router;
