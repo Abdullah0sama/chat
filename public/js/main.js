@@ -55,6 +55,7 @@ socket.on('chat message', (msg) => {
 // Get information about connected client
 socket.once('whoami',  (user) => {
     me = user;
+    displayUsername(user.username);
 });
 
 
@@ -236,3 +237,7 @@ socket.on('joined new room', (roomData) => {
     joinedRoomsContainer.innerHTML += roomNode(roomData, false);
     getOldMessages(roomData._id);
 });
+
+function displayUsername (username) {
+    document.querySelector('#display-username').innerHTML = username;
+}

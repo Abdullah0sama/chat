@@ -28,13 +28,8 @@ mongoose.connect('mongodb://localhost/testChat', {useNewUrlParser: true, useUnif
     console.log(err);
 });
 
-// mongoose.set('debug', true);
+mongoose.set('debug', true);
 
-// Models 
-const User          = require('./models/User.js');
-const Room          = require('./models/Room.js');
-const RoomMember    = require('./models/RoomMember.js');
-const Message       = require('./models/Message.js');
 
 // Routes 
 const indexRoute = require('./routes/index.js');
