@@ -58,24 +58,24 @@
                     <button type="button" class="btn-close btn-close-white  " data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form>
+                    <form id="joinModalForm">
                         <div class="row">
                             <label class="col-sm-2 col-form-label">Join</label>
                             <div class="col-sm-10">
                                 <input type="text" readonly class="form-control-plaintext text-light" id="modal-room-name">
-                                <input type="text" hidden id="modal-room-id">
+                                <input type="hidden" id="modal-room-id" name="roomId">
                             </div>
                         </div>
                         <div class="my-3 row" id="modal-room-password">
                             <label for="inputPassword" class="col-sm-2 col-form-label">Password</label>
                             <div class="col-sm-10">
-                                <input type="password" class="form-control" id="modal-room-password">
+                                <input type="password" class="form-control" id="modal-room-password" name="password">
                             </div>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer border-info">
-                    <button type="button" class="btn btn-info" id="modal-submit">Join Room</button>
+                    <button type="submit" class="btn btn-info" id="modal-submit" form="joinModalForm">Join Room</button>
                 </div>
             </div>
         </div>
