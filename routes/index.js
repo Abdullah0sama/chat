@@ -7,7 +7,7 @@ const User              = require('../models/User.js');
 const validationSchema  = require('../validation.js');
 const Joi               = require('joi');
 const io                = require('../socketioEvents.js').getIo();
-
+const pushNewRoom       = require('../socketioEvents.js').pushNewRoom;
 const Room              = require('../models/Room.js');
 const RoomMember        = require('../models/RoomMember.js');
 const Message           = require('../models/Message.js');
@@ -89,12 +89,11 @@ router.post('/room/:roomID/join/', isAuthenticated, async (req, res) => {
     }
     try {
 
-        const foundRoom = await Room.findById( joinRequest.roomID );
-            
+        const foundRoom = await Room.findById(joinRequest.roomID);
         if(foundRoom == null) throw new UserError('Room not Found');
         
         if(foundRoom.status == 'private') 
-            if (joinRequest.password == '' || await bcyrpt.compare(joinRequest.password, foundRoom.password)) 
+            if (joinRequest.password == '' || !(await bcyrpt.compare(joinRequest.password, foundRoom.password))) 
                 throw new UserError('Wrong password');
         
         const createRelation = await RoomMember.create( joinRequest );
@@ -108,7 +107,7 @@ router.post('/room/:roomID/join/', isAuthenticated, async (req, res) => {
 
     } catch (err) {
         console.log(err);
-        if (err instanceof UserError) return res.status(422).send(err.message);
+        if (err instanceof UserError) return res.status(422).send({ msg: err.message });
         else return res.status(500).send();
 
     };
@@ -140,12 +139,14 @@ router.post('/room/', isAuthenticated, async (req, res) => {
         io.in(req.session.user.id).socketsJoin(roomData._id);
         // Emiting to the user data of the joined room
         io.in(req.session.user.id).emit('joined new room', roomData);
+        // Push new room to cached rooms
+        pushNewRoom(roomData);
 
         return res.status(200).send({ msg: "Created Room Successfully" });
 
     } catch (err) {
         console.log(err);
-        if (err instanceof Joi.ValidationError) return res.status(422).send(err.message);
+        if (err instanceof Joi.ValidationError) return res.status(422).send({ msg: err.message });
         else return res.status(500).send();
     }
 
@@ -173,11 +174,6 @@ class UserError extends Error {
         Object.setPrototypeOf(this, new.target.prototype);
         Error.captureStackTrace(this);
     }
-}
-function makeError(name, msg) {
-    let error = new Error(msg);
-    error.name = name;
-    return error;
 }
 
 

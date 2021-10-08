@@ -17,7 +17,7 @@ let otherRooms = [] ;
 
 socket.emit('refresh rooms');
 
-sendBtn.addEventListener('click', sendMessage());
+sendBtn.addEventListener('click', sendMessage);
 
 // Sends a message when Enter is pressed
 inputMessage.addEventListener('keypress', (event) => {
@@ -122,7 +122,10 @@ function roomNode(room, notJoined) {
 // Adds message to the storage and displays it if it belongs to the selected room
 function addNewMessages(msg, roomId) {
     addMessageToStorage(msg, roomId);
-    if(selectedRoom.id == roomId) messagesGroup.innerHTML += msg.map(createMsgNode).join('');
+    if(selectedRoom.id == roomId) {
+        messagesGroup.innerHTML += msg.map(createMsgNode).join('');
+        messagesGroup.scrollTo(0, messagesGroup.scrollHeight);
+    }
 }
 // display messages
 function displayRoomMessages(roomId) {
@@ -177,9 +180,12 @@ const modalRoomId               = document.querySelector('#modal-room-id');
 const modalRoomPassword         = document.querySelector('#modal-room-password');
 const modalRoomPasswordInput    = document.querySelector('#modal-room-password input');
 const joinModalForm             = document.querySelector('#joinModalForm');
+const alertJoinModal            = document.querySelector('#joinModal .alert');
 
 joinModalForm.addEventListener('submit', (event) => {
     event.preventDefault();
+    alertJoinModal.classList.add('d-none');
+
     const data = new FormData(event.target);
     const roomId = data.get('roomId');
     const roomPassword = data.get('password');
@@ -194,12 +200,20 @@ joinModalForm.addEventListener('submit', (event) => {
         if (res.status == 200) {
             document.querySelector('#joinModal .btn-close').click();
             document.querySelector(`.otherRooms [data-id='${roomId}']`).remove();
-        }
-    }).catch( (err) => {
+            return null;
+        } else return res.json();
+    }).then( (res) => {
+        if (!res) return;
+        console.log(res);
+        alertJoinModal.innerHTML = res.msg;
+        alertJoinModal.classList.remove('d-none');
+    })
+    .catch( (err) => {
         console.log(err);
     });
 });
 joinModal.addEventListener('show.bs.modal', function(event) {
+    alertJoinModal.classList.add('d-none');
     let button = event.relatedTarget;
     modalRoomName.value = button.dataset.name;
     modalRoomId.value = button.dataset.id;
@@ -213,10 +227,16 @@ joinModal.addEventListener('show.bs.modal', function(event) {
 
 
 
-const modalCreateForm = document.querySelector('#createModalForm');
+const modalCreateForm   = document.querySelector('#createModalForm');
+const alertCreateForm   = document.querySelector('#createModal .alert');
+const createModal       = document.querySelector('#createModal');
+const createPassword    = document.querySelector('#createModal #createPassword');
+const createName        = document.querySelector('#createModal #createName');
 
 modalCreateForm.addEventListener('submit', (event) => {
     event.preventDefault();
+    alertCreateForm.classList.add('d-none');
+
     const data = new URLSearchParams( new FormData(event.target) );
     if (!data.has('room[status]')) data.set('room[status]', 'public'), data.delete('room[password]');
     fetch('/room', {
@@ -226,15 +246,27 @@ modalCreateForm.addEventListener('submit', (event) => {
         },
         body: data
     }).then( (res) => {
+        console.log(res);
         if (res.status == 200) {
             document.querySelector('#createModal .btn-close').click();
+            return null;
         }
-        return res.json();
+        else return res.json();
     }).then( (json) => {
-        console.log(json);
+        if(!json) return;
+        alertCreateForm.innerHTML = json.msg;
+        alertCreateForm.classList.remove('d-none');
+
     }).catch ( (err) => {
         console.log(err);
     });
+});
+
+
+createModal.addEventListener('show.bs.modal', function(event) {
+    alertCreateForm.classList.add('d-none');
+    createPassword.value = '';
+    createName.value = '';
 });
 
 
