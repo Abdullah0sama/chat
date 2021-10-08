@@ -11,9 +11,13 @@ const PORT              = process.env.PORT || 3000;
 
 
 const session = expressSession({
-    secret: 'nothnsnfan323hu3@R3nTG$3f32fs',
-    resave: false,
-    saveUninitialized: false,
+    secret:             process.env.chatSessionSecret,
+    resave:             false,
+    saveUninitialized:  false,
+    cookie: {
+        httpOnly: true,
+        sameSite: 'lax',
+    }
 });
 
 require('./socketioEvents.js').initialize(httpServer, session);
@@ -21,7 +25,10 @@ require('./socketioEvents.js').initialize(httpServer, session);
 app.use(session);
 app.use(express.static(path.join(__dirname, 'public')));
 
-mongoose.connect('mongodb://localhost/testChat', {useNewUrlParser: true, useUnifiedTopology: true})
+// mongoose.connect('mongodb://localhost/testChat', {useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true})
+mongoose.connect(`mongodb+srv://${process.env.chatDBUser}:${process.env.chatDBPassword}@cluster0.ptdde.mongodb.net/${'chatDatabase'}?retryWrites=true&w=majority`, 
+                {useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true})
+
 .then( () => {
     console.log('Connected to Database!');
 }).catch( (err) => {
