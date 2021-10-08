@@ -7,4 +7,6 @@ const messageSchema = mongoose.Schema({
     room: { id: { type: mongoose.SchemaTypes.ObjectId } }
 });
 
+messageSchema.index({ 'room.id': 1 });
+
 module.exports = mongoose.model('Message', messageSchema);
