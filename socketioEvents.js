@@ -31,7 +31,6 @@ exports.initialize = function (httpServer, session) {
 
             let joinedRooms = [];
             let otherRooms = [];
-
             AllRooms.forEach( (room) => {
 
                 if (joinedRoomsId.includes(room.id)) {
@@ -64,7 +63,7 @@ exports.initialize = function (httpServer, session) {
                 if(foundRelation == null) return socket.emit('error', 'You are not joined in this room.');
     
                 // Saving message to the database
-                Message.create(msg).then((message) => console.log(message)).catch( (err) => console.log(err) );
+                Message.create(msg).catch( (err) => console.log(err) );
                 msg.user = connectedUser;
                 // Emiting message to all other users in the room
                 socket.to(msg.room.id).emit('chat message', msg);
@@ -86,3 +85,7 @@ function findMyRoomsIds (userId) {
 }
 
 exports.getIo = () => io;
+
+exports.pushNewRoom = (roomData) => {
+    AllRooms.push(roomData);
+}
