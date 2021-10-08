@@ -60,10 +60,10 @@ router.post('/login', async (req, res) => {
         const user = req.body.user;
         let foundUser = await User.findOne({ username: user.username });
         let isPasswordCorrect;
-            if(foundUser == null) 
-                // Wasting time
-                isPasswordCorrect = await bcyrpt.compare('icantremeber', '$2b$10$DHgmPDyXukbf3gKPhA6WhOiFst5PUtjhzgTsIv0TyyCHuaJJ4TrAW');
-            else isPasswordCorrect = bcyrpt.compare(user.password, foundUser.password);
+        // Wasting time
+        if(foundUser == null) 
+            isPasswordCorrect = await bcyrpt.compare('icantremeber', '$2b$10$DHgmPDyXukbf3gKPhA6WhOiFst5PUtjhzgTsIv0TyyCHuaJJ4TrAW');
+        else isPasswordCorrect = await bcyrpt.compare(user.password, foundUser.password);
     
         if (isPasswordCorrect) {
                 req.session.user = {};
