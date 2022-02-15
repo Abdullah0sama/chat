@@ -146,7 +146,8 @@ function addMessageToStorage(msg, roomId) {
 function createMsgNode(msg) {
     const {time, user, body} = msg;
     let meClass = '';
-    if(user.username == me.username) meClass = 'me';
+    if(user.username == me.username) meClass = 'me', user.username = 'me';
+
     let messageNode =  `<div class="d-flex fs-6 align-items-stretch  ${meClass} message  ">
                             <div class="user-name align-middle d-flex align-items-center  text-dark">
                                 <span class="text-center w-100">${user.username}</span>
