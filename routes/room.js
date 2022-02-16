@@ -1,11 +1,17 @@
 const express                   = require('express');
 const router                    = express.Router();
-const io                        = require('../socketioEvents.js').getIo();
-const pushNewRoom               = require('../socketioEvents.js').pushNewRoom;
+const { isAuthenticated }       = require('../middleware.js');
+const Joi                       = require('joi');
+const validationSchema          = require('../validation.js');
+const bcyrpt                    = require('bcrypt');
+
 const Room                      = require('../models/Room.js');
 const RoomMember                = require('../models/RoomMember.js');
 const Message                   = require('../models/Message.js');
-const { isAuthenticated }       = require('../middleware.js');
+const SALTROUNDS                = 10
+
+const { joinRoom, announceJoiningRoom, announceCreatedRoom }  = require('../socketioEvents.js');
+
 // Join Room using room Id 
 router.post('/:roomID/join/', isAuthenticated, async (req, res) => {
 
@@ -23,12 +29,10 @@ router.post('/:roomID/join/', isAuthenticated, async (req, res) => {
             if (joinRequest.password == '' || !(await bcyrpt.compare(joinRequest.password, foundRoom.password))) 
                 throw new UserError('Wrong password');
         
-        const createRelation = await RoomMember.create( joinRequest );
+        await RoomMember.create( joinRequest );
         
-        // Emiting joined room
-        io.to(req.session.user.id).emit('joined new room', foundRoom);
-        // Joining room
-        io.in(req.session.user.id).socketsJoin(foundRoom._id);
+        announceJoiningRoom(req.session.user.id, foundRoom);
+        joinRoom(req.session.user.id, foundRoom._id);
 
         return res.status(200).send({ msg: "Joined Successfully" });
 
@@ -48,29 +52,26 @@ router.post('/', isAuthenticated, async (req, res) => {
 
     try {
 
-        const roomValidation = await validationSchema.RoomValidationSchema.validateAsync(roomInfo);
+        await validationSchema.RoomValidationSchema.validateAsync(roomInfo);
         
         // Hashing password if room is private
-        if (roomInfo.status == 'private') roomInfo.password = await bcyrpt.hash(roomInfo.password, saltRounds);
+        if (roomInfo.status == 'private') 
+            roomInfo.password = await bcyrpt.hash(roomInfo.password, SALTROUNDS);
 
-        let roomData = await Room.create(roomInfo);
+        // Creating room
+        let createdRoomInfo = await Room.create(roomInfo);
 
-        let joinRequest = await RoomMember.create({
-                                roomID: roomData._id,
+        // Joining the created room 
+        await RoomMember.create({
+                                roomID: createdRoomInfo._id,
                                 userID: req.session.user.id
                             });
         
-        // Announcing that a new room has been created to all other users
-        io.except(req.session.user.id).emit('new room', roomData);
-        // User joins the created room
-        io.in(req.session.user.id).socketsJoin(roomData._id);
-        // Emiting to the user data of the joined room
-        io.in(req.session.user.id).emit('joined new room', roomData);
-        // Push new room to cached rooms
-        pushNewRoom(roomData);
+        announceCreatedRoom(req.session.user.id, createdRoomInfo);
+        announceJoiningRoom(req.session.user.id, createdRoomInfo);
+        joinRoom(req.session.user.id, createdRoomInfo._id);
 
         return res.status(200).send({ msg: "Created Room Successfully" });
-
     } catch (err) {
         console.log(err);
         if (err instanceof Joi.ValidationError) return res.status(422).send({ msg: err.message });
@@ -79,17 +80,13 @@ router.post('/', isAuthenticated, async (req, res) => {
 
 });
 
-// Get all messages from a room
+// Get all messages from room
 router.get('/:roomId', isAuthenticated, (req, res) => {
 
     Message.find({ 'room.id': req.params.roomId }).populate('user', 'username _id').then( (messages) => {
-        
         return res.status(200).send( messages );
-
     }).catch( (err) => {
-        
         return res.status(500).send();
-
     });
 
 });

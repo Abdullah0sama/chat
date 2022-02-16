@@ -20,7 +20,7 @@ const session = expressSession({
     }
 });
 
-require('./socketioEvents.js').initialize(httpServer, session);
+require('./socketioEvents.js').initializeSocketIO(httpServer, session);
 
 app.use(session);
 app.use(express.static(path.join(__dirname, 'public')));
