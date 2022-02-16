@@ -2,7 +2,7 @@ const express                           = require('express');
 const bcyrpt                            = require('bcrypt');
 const router                            = express.Router();
 const path                              = require('path');
-const saltRounds                        = 10;
+const SALTROUNDS                        = 10;
 const User                              = require('../models/User.js');
 const validationSchema                  = require('../validation.js');
 const { pageAuthenticationProtection }  = require('../middleware.js');
@@ -38,10 +38,11 @@ router.post('/signup', async (req, res) => {
 
             await validationSchema.userValidationSchema.validateAsync(user);
 
-            const isUsernameAvailable = await User.findOne({ username: user.username });
-            if (isUsernameAvailable) 
+            const isUsernameUsed = await User.findOne({ username: user.username });
+            if (isUsernameUsed) 
                 throw new UserError( 'Username already used' );
-            user.password = await bcyrpt.hash(user.password, saltRounds);
+
+            user.password = await bcyrpt.hash(user.password, SALTROUNDS);
             // Create new user
             await User.create(user);
             res.status(200).send({ msg: 'User Created Successfully' }); 
@@ -49,7 +50,6 @@ router.post('/signup', async (req, res) => {
     } catch (err) {
         if (err instanceof UserError || err instanceof Joi.ValidationError) 
             return res.status(422).send({ msg: err.message });
-
         else return res.status(500).send();
     }
 
@@ -59,22 +59,23 @@ router.post('/signup', async (req, res) => {
 router.post('/login', async (req, res) => {
     try {
         const user = req.body.user;
-        let foundUser = await User.findOne({ username: user.username });
-        let isPasswordCorrect;
-        // Wasting time
-        if(foundUser == null) 
-            isPasswordCorrect = await bcyrpt.compare('icantremeber', '$2b$10$DHgmPDyXukbf3gKPhA6WhOiFst5PUtjhzgTsIv0TyyCHuaJJ4TrAW');
-        else isPasswordCorrect = await bcyrpt.compare(user.password, foundUser.password);
-    
-        if (isPasswordCorrect) {
-                req.session.user = {};
-                req.session.user.id = foundUser.id;
-                req.session.user.username = foundUser.username;
-                return res.status(200).send({ msg: 'Logged in successfully' });
-            }else throw new UserError('Wrong username or password');
 
+        let foundUser = await User.findOne({ username: user.username });
+        if(!foundUser) 
+            throw new UserError('Wrong username or password');
+        
+        let isPasswordCorrect = await bcyrpt.compare(user.password, foundUser.password);    
+        if (!isPasswordCorrect) 
+            throw new UserError('Wrong username or password');
+
+        req.session.user = {
+            id: foundUser.id,
+            username: foundUser.username
+        };
+
+        return res.status(200).send({ msg: 'Logged in successfully' });
     } catch (err) {
-        if (err instanceof UserError ) return res.status(401).send({ msg: err.message });
+        if (err instanceof UserError) return res.status(401).send({ msg: err.message });
         else return res.status(500).send();
     }
 });
