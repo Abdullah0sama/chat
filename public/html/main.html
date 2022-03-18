@@ -17,6 +17,9 @@
                 <a href="#" class="nav-link text-secondary btn">Hi, <span id="display-username"></span></a>
             </li>
             <li class="nav-item">
+                <a href="#" class="nav-link text-warning btn" data-bs-toggle="modal" data-bs-target="#exploreModal" type="button">Explore</a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link btn text-info" data-bs-toggle="modal" data-bs-target="#createModal" type="button">Create a Room</a>
             </li>
             <li class="nav-item">
@@ -119,6 +122,26 @@
                 <div class="modal-footer border-info">
                     <button type="submit" class="btn btn-info" form="createModalForm">Create Room</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="exploreModal" tabindex="-1" >
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark text-light">
+                <div class="modal-header border-info">
+                    <h5 class="modal-title">Explore</h5>
+                    <button type="button" class="btn-close btn-close-white  " data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                
+                <div class="modal-body" >
+                    <form>
+                        <input class="form-control" type="text" placeholder="What are you looking for?" name="searchQuery">
+                    </form>
+                </div>
+                <!-- <div class="modal-footer border-info">
+                    <button type="submit" class="btn btn-info" form="createModalForm">Create Room</button>
+                </div> -->
             </div>
         </div>
     </div>
