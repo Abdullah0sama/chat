@@ -12,6 +12,20 @@ const SALTROUNDS                = 10
 
 const { joinRoom, announceJoiningRoom, announceCreatedRoom }  = require('../socketioEvents.js');
 
+
+// Get rooms according to query params
+// ?likeRoomName: get rooms similar to that name
+router.get('/', async (req, res) => {
+    try {
+        const queryRooms = req.query.likeRoomName;
+        const foundRooms = await Room.find({ name: { $regex: `.*${queryRooms}.*` }}, {password: 0});
+        return res.status(200).send({ rooms: foundRooms });
+    }catch (err) {
+        console.log(err);
+        return res.status(500).send();
+    }
+
+});
 // Join Room using room Id 
 router.post('/:roomID/join/', isAuthenticated, async (req, res) => {
 
@@ -23,7 +37,8 @@ router.post('/:roomID/join/', isAuthenticated, async (req, res) => {
     try {
 
         const foundRoom = await Room.findById(joinRequest.roomID);
-        if(foundRoom == null) throw new UserError('Room not Found');
+        if(foundRoom == null) 
+            throw new UserError('Room not Found');
         
         if(foundRoom.status == 'private') 
             if (joinRequest.password == '' || !(await bcyrpt.compare(joinRequest.password, foundRoom.password))) 
@@ -71,7 +86,7 @@ router.post('/', isAuthenticated, async (req, res) => {
         announceJoiningRoom(req.session.user.id, createdRoomInfo);
         joinRoom(req.session.user.id, createdRoomInfo._id);
 
-        return res.status(200).send({ msg: "Created Room Successfully" });
+        return res.status(200).send({ msg: "Room created successfully" });
     } catch (err) {
         console.log(err);
         if (err instanceof Joi.ValidationError) return res.status(422).send({ msg: err.message });

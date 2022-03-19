@@ -1,3 +1,4 @@
+
 const socket = io();
 
 const sendBtn               = document.querySelector('#sendBtn');
@@ -274,4 +275,33 @@ createModal.addEventListener('show.bs.modal', function(event) {
 
 function displayUsername (username) {
     document.querySelector('#display-username').innerHTML = username;
+}
+
+
+
+
+
+
+const searchRoomsInput = document.querySelector('#searchRoomsInput')
+const exploredRooms = document.querySelector('#exploredRooms');
+
+searchRoomsInput.addEventListener('keydown', event => {
+    if(event.code != 'Enter') return;
+
+    const queryRoom = searchRoomsInput.value;
+
+    fetch('/room?' + new URLSearchParams({
+        likeRoomName: queryRoom,
+    }))
+    .then(req => req.json())
+    .then(data => {
+        displayExploredRooms(data.rooms);
+    })
+
+});
+
+function displayExploredRooms(roomsInfo) {
+    exploredRooms.innerHTML = roomsInfo.map((room) => 
+    `<div class="p-2">${room.name}</div>`
+    ).join('');
 }
