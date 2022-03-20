@@ -48,8 +48,8 @@ function sendMessage (){
 // Get joined rooms 
 socket.on('rooms', (joined, other) => {
 
-    otherRoomsContainer.innerHTML = other.map(room => roomNode(room, true)).join('');
-    joinedRoomsContainer.innerHTML = joined.map(room => roomNode(room, false)).join('');
+    otherRoomsContainer.innerHTML = other.map(room => roomNameNode(room, true)).join('');
+    joinedRoomsContainer.innerHTML = joined.map(room => roomNameNode(room, false)).join('');
     
     joinedRooms = joined;
     joinedRooms.forEach( (joinedRoom) => {
@@ -73,14 +73,14 @@ socket.once('whoami',  (user) => {
 socket.on('new room', (roomData) => {
     
     otherRooms.push(roomData);
-    otherRoomsContainer.innerHTML += roomNode(roomData, true);
+    otherRoomsContainer.innerHTML += roomNameNode(roomData, true);
 
 });
 
 socket.on('joined new room', (roomData) => {
 
     joinedRooms.push(roomData);
-    joinedRoomsContainer.innerHTML += roomNode(roomData, false);
+    joinedRoomsContainer.innerHTML += roomNameNode(roomData, false);
     getStoredMessages(roomData._id).then( (storedMsg) => addNewMessages(storedMsg, roomData._id));
 
 });
@@ -106,14 +106,14 @@ function selectRoom(event) {
 }
 
 
-function roomNode(room, notJoined) {
+function roomNameNode(room, notJoined) {
     const { _id, name, status } = room;
     
     let attributes = 'onclick=selectRoom(event)';
-    if (notJoined) attributes = 'data-bs-toggle="modal" data-bs-target="#joinModal"';
+    if (notJoined) notJoinedAttr = 'data-bs-toggle="modal" data-bs-target="#joinModal"';
 
-    return `<div type="button" class="chat-room p-3 text-light" data-name= "${name}" data-status="${status}" 
-            id="${_id}" ${attributes} data-id="${_id}">
+    return `<div type="button" class="chat-room p-3 text-light" data-room_name= "${name}" data-room_status="${status}" 
+            id="${_id}" ${notJoinedAttr} data-room_id="${_id}">
                 <span>${name}</span>
             </div>`;
 }
@@ -217,11 +217,12 @@ joinModalForm.addEventListener('submit', (event) => {
 joinModal.addEventListener('show.bs.modal', function(event) {
     alertJoinModal.classList.add('d-none');
     let button = event.relatedTarget;
-    modalRoomName.value = button.dataset.name;
-    modalRoomId.value = button.dataset.id;
+    modalRoomName.value = button.dataset.room_name;
+    modalRoomId.value = button.dataset.room_id;
     modalRoomPasswordInput.value = '';
-    if (button.dataset.status == 'private') modalRoomPassword.classList.remove('d-none');
-    else if (button.dataset.status == 'public') modalRoomPassword.classList.add('d-none');
+    console.log(button.dataset.room_status);
+    if (button.dataset.room_status == 'private') modalRoomPassword.classList.remove('d-none');
+    else if (button.dataset.room_status == 'public') modalRoomPassword.classList.add('d-none');
     
 });
 
@@ -295,13 +296,12 @@ searchRoomsInput.addEventListener('keydown', event => {
     }))
     .then(req => req.json())
     .then(data => {
+        console.log(data.rooms);
         displayExploredRooms(data.rooms);
     })
 
 });
 
 function displayExploredRooms(roomsInfo) {
-    exploredRooms.innerHTML = roomsInfo.map((room) => 
-    `<div class="p-2">${room.name}</div>`
-    ).join('');
+    exploredRooms.innerHTML = roomsInfo.map((room) => roomNameNode(room, true)).join('');
 }
