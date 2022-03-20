@@ -100,15 +100,19 @@ function displayRoomName(name) {
     roomHeader.innerHTML = name;
 }
 
+function displayUsername (username) {
+    document.querySelector('#display-username').innerHTML = username;
+}
+
 function roomNameNode(room, notJoined) {
     const { _id, name, status } = room;
     
-    let event = 'onclick=selectRoom(event)';
-    if (notJoined) event = 'data-bs-toggle="modal" data-bs-target="#joinModal"';
-
+    let event = (notJoined) ? 'data-bs-toggle="modal" data-bs-target="#joinModal"' : 'onclick=selectRoom(event)';;
+    let icon = (notJoined && status == 'private') ? '<i class="fa-solid fa-lock"></i>' : '';
     return `<div type="button" class="chat-room p-3 text-light" data-room_name= "${name}" data-room_status="${status}" 
             id="${_id}" ${event} data-room_id="${_id}">
                 <span>${name}</span>
+                ${icon}
             </div>`;
 }
 
@@ -200,7 +204,6 @@ joinModalForm.addEventListener('submit', (event) => {
         } else return res.json();
     }).then( (res) => {
         if (!res) return;
-        console.log(res);
         alertJoinModal.innerHTML = res.msg;
         alertJoinModal.classList.remove('d-none');
     })
@@ -214,7 +217,6 @@ joinModal.addEventListener('show.bs.modal', function(event) {
     modalRoomName.value = button.dataset.room_name;
     modalRoomId.value = button.dataset.room_id;
     modalRoomPasswordInput.value = '';
-    console.log(button.dataset.room_status);
     if (button.dataset.room_status == 'private') modalRoomPassword.classList.remove('d-none');
     else if (button.dataset.room_status == 'public') modalRoomPassword.classList.add('d-none');
     
@@ -243,7 +245,6 @@ modalCreateForm.addEventListener('submit', (event) => {
         },
         body: data
     }).then( (res) => {
-        console.log(res);
         if (res.status == 200) {
             document.querySelector('#createModal .btn-close').click();
             return null;
@@ -267,15 +268,6 @@ createModal.addEventListener('show.bs.modal', function(event) {
 });
 
 
-
-function displayUsername (username) {
-    document.querySelector('#display-username').innerHTML = username;
-}
-
-
-
-
-
 // Explored Button modal 
 const searchRoomsInput = document.querySelector('#searchRoomsInput')
 const exploredRooms = document.querySelector('#exploredRooms');
@@ -289,7 +281,6 @@ searchRoomsInput.addEventListener('keydown', event => {
     }))
     .then(req => req.json())
     .then(data => {
-        console.log(data.rooms);
         displayExploredRooms(data.rooms);
     })
 
