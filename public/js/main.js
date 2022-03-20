@@ -8,7 +8,6 @@ const roomsGroup            = document.querySelector('.rooms');
 const messagesGroup         = document.querySelector('.chat-messages');
 const roomHeader            = document.querySelector('.room-header');
 const joinedRoomsContainer  = document.querySelector('.joinedRooms');
-const otherRoomsContainer   = document.querySelector('.otherRooms');
 
 const selectedRoom = {};
 const messages = {};
@@ -48,7 +47,6 @@ function sendMessage (){
 // Get joined rooms 
 socket.on('rooms', (joined, other) => {
 
-    otherRoomsContainer.innerHTML = other.map(room => roomNameNode(room, true)).join('');
     joinedRoomsContainer.innerHTML = joined.map(room => roomNameNode(room, false)).join('');
     
     joinedRooms = joined;
@@ -70,12 +68,6 @@ socket.once('whoami',  (user) => {
     displayUsername(user.username);
 });
 
-socket.on('new room', (roomData) => {
-    
-    otherRooms.push(roomData);
-    otherRoomsContainer.innerHTML += roomNameNode(roomData, true);
-
-});
 
 socket.on('joined new room', (roomData) => {
 
@@ -282,13 +274,12 @@ function displayUsername (username) {
 
 
 
-
+// Explored Button modal 
 const searchRoomsInput = document.querySelector('#searchRoomsInput')
 const exploredRooms = document.querySelector('#exploredRooms');
 
 searchRoomsInput.addEventListener('keydown', event => {
     if(event.code != 'Enter') return;
-
     const queryRoom = searchRoomsInput.value;
 
     fetch('/room?' + new URLSearchParams({
