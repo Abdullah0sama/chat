@@ -20,7 +20,7 @@ sendBtn.addEventListener('click', sendMessage);
 
 // Sends a message when Enter is pressed
 inputMessage.addEventListener('keypress', (event) => {
-    if  (event.code == 'Enter') sendMessage();
+    if  (event.code == 'Enter' && selectedRoom.id) sendMessage();
 });
 
 function sendMessage (){
