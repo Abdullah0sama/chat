@@ -13,7 +13,6 @@ const selectedRoom = {};
 const messages = {};
 let me;
 let joinedRooms = [];
-let otherRooms = [] ;
 
 socket.emit('refresh rooms');
 
@@ -86,26 +85,29 @@ socket.onAny( (events, ...args) => {
 // Selects room which user chose and displays its messages  
 function selectRoom(event) {
     event.stopPropagation();
-    if(event.target.id == selectedRoom.id) return ;
+    if(event.target.dataset.room_id == selectedRoom.id) return ;
 
-    selectedRoom.id = event.target.dataset.id;
+    selectedRoom.id = event.target.dataset.room_id;
     if(selectedRoom.node) selectedRoom.node.classList.remove('active-chat');
     selectedRoom.node = event.target;
-    roomHeader.innerHTML = selectedRoom.node.dataset.name;
+    displayRoomName(selectedRoom.node.dataset.room_name);
     selectedRoom.node.classList.add('active-chat');
 
     displayRoomMessages(selectedRoom.id);
 }
 
+function displayRoomName(name) {
+    roomHeader.innerHTML = name;
+}
 
 function roomNameNode(room, notJoined) {
     const { _id, name, status } = room;
     
-    let attributes = 'onclick=selectRoom(event)';
-    if (notJoined) notJoinedAttr = 'data-bs-toggle="modal" data-bs-target="#joinModal"';
+    let event = 'onclick=selectRoom(event)';
+    if (notJoined) event = 'data-bs-toggle="modal" data-bs-target="#joinModal"';
 
     return `<div type="button" class="chat-room p-3 text-light" data-room_name= "${name}" data-room_status="${status}" 
-            id="${_id}" ${notJoinedAttr} data-room_id="${_id}">
+            id="${_id}" ${event} data-room_id="${_id}">
                 <span>${name}</span>
             </div>`;
 }
