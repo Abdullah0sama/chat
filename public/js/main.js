@@ -144,16 +144,14 @@ function addMessageToStorage(msg, roomId) {
 // Create html tag for message
 function createMsgNode(msg) {
     const {time, user, body} = msg;
-    let meClass = '';
-    if(user.username == me.username) meClass = 'me', user.username = 'me';
+    let msgOwner = 'others_msg';
+    if(user.username == me.username) msgOwner = 'my_msg', user.username = '';
 
-    let messageNode =  `<div class="d-flex fs-6 align-items-stretch  ${meClass} message  ">
-                            <div class="user-name align-middle d-flex align-items-center  text-dark">
-                                <span class="text-center w-100">${user.username}</span>
-                            </div>
-                            <p class="m-0  text-light text-break">${body}<br>
-                            <span class="float-end">${dateFormat(time)}</span></p>
-                        </div>`;
+    let messageNode = `<div class=" fs-6 message ${msgOwner}">
+                        <span class="username">${user.username}</span>
+                        <p class="body">${body}</p>
+                        <span class="msg-time text-muted">${dateFormat(time)}</span>
+                    </div>`
     return messageNode;
 }
 // Changing date format according to how much time has passed 
