@@ -281,7 +281,7 @@ searchRoomsInput.addEventListener('keydown', event => {
     }))
     .then(req => req.json())
     .then(data => {
-        displayExploredRooms(data.rooms);
+        displayExploredRooms(data.rooms.filter(room => !joinedRooms.find(joinedRoom => joinedRoom._id == room._id)));
     })
 
 });
