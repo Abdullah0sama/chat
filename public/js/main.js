@@ -287,3 +287,15 @@ searchRoomsInput.addEventListener('keydown', event => {
 function displayExploredRooms(roomsInfo) {
     exploredRooms.innerHTML = roomsInfo.map((room) => roomNameNode(room, true)).join('');
 }
+
+
+function startup() {
+    const defaultExploredRooms = [
+        {"_id": "6237bed726b644113142d43b","status":"public","type":"many","name":"Nature"},
+        {"_id": "6237bee326b644113142d440","status":"public","type":"many","name":"Movies"},
+        {"_id": "6237beeb26b644113142d445","status":"public","type":"many","name":"Random"}
+    ]
+    displayExploredRooms(defaultExploredRooms);
+}
+
+startup();
