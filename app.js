@@ -25,9 +25,9 @@ require('./socketioEvents.js').initializeSocketIO(httpServer, session);
 app.use(session);
 app.use(express.static(path.join(__dirname, 'public')));
 
-mongoose.connect('mongodb://localhost/testChat', {useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true})
-// mongoose.connect(`mongodb+srv://${process.env.chatDBUser}:${process.env.chatDBPassword}@cluster0.ptdde.mongodb.net/${'chatDatabase'}?retryWrites=true&w=majority`, 
-//                 {useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true})
+// mongoose.connect('mongodb://localhost/testChat', {useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true})
+mongoose.connect(`mongodb+srv://${process.env.chatDBUser}:${process.env.chatDBPassword}@cluster0.ptdde.mongodb.net/${'chatDatabase'}?retryWrites=true&w=majority`, 
+                {useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true})
 .then( () => {
     console.log('Connected to Database!');
 }).catch( (err) => {
