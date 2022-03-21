@@ -7,7 +7,7 @@ const Room          = require('./models/Room');
 
 let AllRooms;
 
-exports.initialize = function (httpServer, session) {
+function initializeSocketIO (httpServer, session) {
 
     const wrap = middleware => (socket, next) => middleware(socket.request, {}, next);
     
@@ -84,8 +84,22 @@ function findMyRoomsIds (userId) {
     });
 }
 
-exports.getIo = () => io;
+function announceJoiningRoom(userId, roomInfo) {
+    io.in(userId).emit('joined new room', roomInfo);
 
-exports.pushNewRoom = (roomData) => {
-    AllRooms.push(roomData);
+}
+function joinRoom(userId, roomId) {
+    io.in(userId).socketsJoin(roomId);
+}
+
+function announceCreatedRoom(neglectedUser, roomInfo) {
+    io.except(neglectedUser).emit('new room', roomInfo);
+    AllRooms.push(roomInfo);
+
+}
+module.exports = {
+    joinRoom,
+    announceJoiningRoom,
+    announceCreatedRoom, 
+    initializeSocketIO
 }

@@ -11,9 +11,6 @@ body {
     background-color: #f5f5f5;
 }
 
-.joinedRooms, .otherRooms {
-    height: 40%;
-}
 .container, .chat{
     height: 100%;
 }
@@ -31,39 +28,39 @@ body {
 }
 
 .chat-messages {
-    /* background-color: #0F4C75 !important; */
+    padding-top: 10px;
 }
-.chat-messages .user-name {
-    width: 15%;
+.message {
+    color: white;
+    padding: 0px 8px 8px ; 
+    display: flex;
+    flex-direction: column;
 }
-
-.chat-messages p {
-    width: 80%;
-    padding: 5px 5px 2px 5px;
-    border-top-right-radius: 30px;
-    border-bottom-right-radius: 10px;
-    background-color: #1d2024;
-
+.message .usernamn {
+    font-weight: bold;
 }
-.message p {
-    /* border: 1px solid whit; */
-    border-bottom: 1px solid #212529;
-}
-.message .user-name {
-    border-bottom: 1px solid #212529;
-}
-.me .user-name{
-    background-color: slategray !important;
-    color: #f8f9fa !important;
+.message .msg-time {
+    width: 55%;;
+    margin-left: 16px;
 }
 
-.user-name {
-    background-color: dimgray   ;
+.message .body{
+    box-sizing: border-box;
+    background-color: #C1F8CF;
+    width: 55%;
+    padding: 10px;
+    margin: 0px 10px 5px 10px;
+    color: #212529;
+}
+.my_msg {
+    align-items: end;
+}
+.others_msg .body{
+    border-radius: 0px 16px 16px 16px; 
 }
 
-.other p{
-    
-    background-color: #88304E;
+.my_msg .body{
+    border-radius: 16px 0px 16px 16px;
 }
 
 #sendBtn {

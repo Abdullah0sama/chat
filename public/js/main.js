@@ -1,3 +1,4 @@
+
 const socket = io();
 
 const sendBtn               = document.querySelector('#sendBtn');
@@ -7,13 +8,11 @@ const roomsGroup            = document.querySelector('.rooms');
 const messagesGroup         = document.querySelector('.chat-messages');
 const roomHeader            = document.querySelector('.room-header');
 const joinedRoomsContainer  = document.querySelector('.joinedRooms');
-const otherRoomsContainer   = document.querySelector('.otherRooms');
 
 const selectedRoom = {};
 const messages = {};
 let me;
 let joinedRooms = [];
-let otherRooms = [] ;
 
 socket.emit('refresh rooms');
 
@@ -21,7 +20,7 @@ sendBtn.addEventListener('click', sendMessage);
 
 // Sends a message when Enter is pressed
 inputMessage.addEventListener('keypress', (event) => {
-    if  (event.code == 'Enter') sendMessage();
+    if  (event.code == 'Enter' && selectedRoom.id) sendMessage();
 });
 
 function sendMessage (){
@@ -47,8 +46,7 @@ function sendMessage (){
 // Get joined rooms 
 socket.on('rooms', (joined, other) => {
 
-    otherRoomsContainer.innerHTML = other.map(room => roomNode(room, true)).join('');
-    joinedRoomsContainer.innerHTML = joined.map(room => roomNode(room, false)).join('');
+    joinedRoomsContainer.innerHTML = joined.map(room => roomNameNode(room, false)).join('');
     
     joinedRooms = joined;
     joinedRooms.forEach( (joinedRoom) => {
@@ -69,17 +67,11 @@ socket.once('whoami',  (user) => {
     displayUsername(user.username);
 });
 
-socket.on('new room', (roomData) => {
-    
-    otherRooms.push(roomData);
-    otherRoomsContainer.innerHTML += roomNode(roomData, true);
-
-});
 
 socket.on('joined new room', (roomData) => {
 
     joinedRooms.push(roomData);
-    joinedRoomsContainer.innerHTML += roomNode(roomData, false);
+    joinedRoomsContainer.innerHTML += roomNameNode(roomData, false);
     getStoredMessages(roomData._id).then( (storedMsg) => addNewMessages(storedMsg, roomData._id));
 
 });
@@ -93,27 +85,34 @@ socket.onAny( (events, ...args) => {
 // Selects room which user chose and displays its messages  
 function selectRoom(event) {
     event.stopPropagation();
-    if(event.target.id == selectedRoom.id) return ;
+    if(event.target.dataset.room_id == selectedRoom.id) return ;
 
-    selectedRoom.id = event.target.dataset.id;
+    selectedRoom.id = event.target.dataset.room_id;
     if(selectedRoom.node) selectedRoom.node.classList.remove('active-chat');
     selectedRoom.node = event.target;
-    roomHeader.innerHTML = selectedRoom.node.dataset.name;
+    displayRoomName(selectedRoom.node.dataset.room_name);
     selectedRoom.node.classList.add('active-chat');
 
     displayRoomMessages(selectedRoom.id);
 }
 
+function displayRoomName(name) {
+    roomHeader.innerHTML = name;
+}
 
-function roomNode(room, notJoined) {
+function displayUsername (username) {
+    document.querySelector('#display-username').innerHTML = username;
+}
+
+function roomNameNode(room, notJoined) {
     const { _id, name, status } = room;
     
-    let attributes = 'onclick=selectRoom(event)';
-    if (notJoined) attributes = 'data-bs-toggle="modal" data-bs-target="#joinModal"';
-
-    return `<div type="button" class="chat-room p-3 text-light" data-name= "${name}" data-status="${status}" 
-            id="${_id}" ${attributes} data-id="${_id}">
+    let event = (notJoined) ? 'data-bs-toggle="modal" data-bs-target="#joinModal"' : 'onclick=selectRoom(event)';;
+    let icon = (notJoined && status == 'private') ? '<i class="fa-solid fa-lock"></i>' : '';
+    return `<div type="button" class="chat-room p-3 text-light" data-room_name= "${name}" data-room_status="${status}" 
+            id="${_id}" ${event} data-room_id="${_id}">
                 <span>${name}</span>
+                ${icon}
             </div>`;
 }
 
@@ -145,15 +144,14 @@ function addMessageToStorage(msg, roomId) {
 // Create html tag for message
 function createMsgNode(msg) {
     const {time, user, body} = msg;
-    let meClass = '';
-    if(user.username == me.username) meClass = 'me';
-    let messageNode =  `<div class="d-flex fs-6 align-items-stretch  ${meClass} message  ">
-                            <div class="user-name align-middle d-flex align-items-center  text-dark">
-                                <span class="text-center w-100">${user.username}</span>
-                            </div>
-                            <p class="m-0  text-light text-break">${body}<br>
-                            <span class="float-end">${dateFormat(time)}</span></p>
-                        </div>`;
+    let msgOwner = 'others_msg';
+    if(user.username == me.username) msgOwner = 'my_msg', user.username = '';
+
+    let messageNode = `<div class=" fs-6 message ${msgOwner}">
+                        <span class="username">${user.username}</span>
+                        <p class="body">${body}</p>
+                        <span class="msg-time text-muted">${dateFormat(time)}</span>
+                    </div>`
     return messageNode;
 }
 // Changing date format according to how much time has passed 
@@ -204,7 +202,6 @@ joinModalForm.addEventListener('submit', (event) => {
         } else return res.json();
     }).then( (res) => {
         if (!res) return;
-        console.log(res);
         alertJoinModal.innerHTML = res.msg;
         alertJoinModal.classList.remove('d-none');
     })
@@ -215,11 +212,11 @@ joinModalForm.addEventListener('submit', (event) => {
 joinModal.addEventListener('show.bs.modal', function(event) {
     alertJoinModal.classList.add('d-none');
     let button = event.relatedTarget;
-    modalRoomName.value = button.dataset.name;
-    modalRoomId.value = button.dataset.id;
+    modalRoomName.value = button.dataset.room_name;
+    modalRoomId.value = button.dataset.room_id;
     modalRoomPasswordInput.value = '';
-    if (button.dataset.status == 'private') modalRoomPassword.classList.remove('d-none');
-    else if (button.dataset.status == 'public') modalRoomPassword.classList.add('d-none');
+    if (button.dataset.room_status == 'private') modalRoomPassword.classList.remove('d-none');
+    else if (button.dataset.room_status == 'public') modalRoomPassword.classList.add('d-none');
     
 });
 
@@ -246,7 +243,6 @@ modalCreateForm.addEventListener('submit', (event) => {
         },
         body: data
     }).then( (res) => {
-        console.log(res);
         if (res.status == 200) {
             document.querySelector('#createModal .btn-close').click();
             return null;
@@ -270,7 +266,36 @@ createModal.addEventListener('show.bs.modal', function(event) {
 });
 
 
+// Explored Button modal 
+const searchRoomsInput = document.querySelector('#searchRoomsInput')
+const exploredRooms = document.querySelector('#exploredRooms');
 
-function displayUsername (username) {
-    document.querySelector('#display-username').innerHTML = username;
+searchRoomsInput.addEventListener('keydown', event => {
+    if(event.code != 'Enter') return;
+    const queryRoom = searchRoomsInput.value;
+
+    fetch('/room?' + new URLSearchParams({
+        likeRoomName: queryRoom,
+    }))
+    .then(req => req.json())
+    .then(data => {
+        displayExploredRooms(data.rooms.filter(room => !joinedRooms.find(joinedRoom => joinedRoom._id == room._id)));
+    })
+
+});
+
+function displayExploredRooms(roomsInfo) {
+    exploredRooms.innerHTML = roomsInfo.map((room) => roomNameNode(room, true)).join('');
 }
+
+
+function startup() {
+    const defaultExploredRooms = [
+        {"_id": "6237bed726b644113142d43b","status":"public","type":"many","name":"Nature"},
+        {"_id": "6237bee326b644113142d440","status":"public","type":"many","name":"Movies"},
+        {"_id": "6237beeb26b644113142d445","status":"public","type":"many","name":"Random"}
+    ]
+    displayExploredRooms(defaultExploredRooms);
+}
+
+startup();
