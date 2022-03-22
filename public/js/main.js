@@ -144,11 +144,12 @@ function addMessageToStorage(msg, roomId) {
 // Create html tag for message
 function createMsgNode(msg) {
     const {time, user, body} = msg;
+    let username = user.username;
     let msgOwner = 'others_msg';
-    if(user.username == me.username) msgOwner = 'my_msg', user.username = '';
+    if(username == me.username) msgOwner = 'my_msg', username = '';
 
     let messageNode = `<div class=" fs-6 message ${msgOwner}">
-                        <span class="username">${user.username}</span>
+                        <span class="username">${username}</span>
                         <p class="body">${body}</p>
                         <span class="msg-time text-muted">${dateFormat(time)}</span>
                     </div>`
@@ -298,4 +299,4 @@ function startup() {
     displayExploredRooms(defaultExploredRooms);
 }
 
-startup();
+startup();  
