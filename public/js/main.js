@@ -71,7 +71,7 @@ socket.once('whoami',  (user) => {
 socket.on('joined new room', (roomData) => {
 
     joinedRooms.push(roomData);
-    joinedRoomsContainer.innerHTML += roomNameNode(roomData, false);
+    joinedRoomsContainer.insertAdjacentHTML('beforeend', roomNameNode(roomData, false));
     getStoredMessages(roomData._id).then( (storedMsg) => addNewMessages(storedMsg, roomData._id));
 
 });
