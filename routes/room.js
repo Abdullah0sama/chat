@@ -10,7 +10,7 @@ const RoomMember                = require('../models/RoomMember.js');
 const Message                   = require('../models/Message.js');
 const SALTROUNDS                = 10
 
-const { joinRoom, announceJoiningRoom, announceCreatedRoom }  = require('../socketioEvents.js');
+const { joinRoom, announceJoiningRoom }  = require('../socketioEvents.js');
 
 
 // Get rooms according to query params
@@ -48,7 +48,7 @@ router.post('/:roomID/join/', isAuthenticated, async (req, res) => {
         
         announceJoiningRoom(req.session.user.id, foundRoom);
         joinRoom(req.session.user.id, foundRoom._id);
-
+        console.log(req.session.user.id, foundRoom);
         return res.status(200).send({ msg: "Joined Successfully" });
 
     } catch (err) {
@@ -82,7 +82,6 @@ router.post('/', isAuthenticated, async (req, res) => {
                                 userID: req.session.user.id
                             });
         
-        announceCreatedRoom(req.session.user.id, createdRoomInfo);
         announceJoiningRoom(req.session.user.id, createdRoomInfo);
         joinRoom(req.session.user.id, createdRoomInfo._id);
 

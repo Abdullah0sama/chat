@@ -5,8 +5,6 @@ const RoomMember    = require('./models/RoomMember');
 const Message       = require('./models/Message');
 const Room          = require('./models/Room');
 
-let AllRooms;
-
 function initializeSocketIO (httpServer, session) {
 
     const wrap = middleware => (socket, next) => middleware(socket.request, {}, next);
@@ -27,21 +25,9 @@ function initializeSocketIO (httpServer, session) {
         socket.on('refresh rooms', async () => {
             
             let joinedRoomsId = await findMyRoomsIds(connectedUser.id);
-            if (AllRooms == undefined) AllRooms = await Room.find({});
-
-            let joinedRooms = [];
-            let otherRooms = [];
-            AllRooms.forEach( (room) => {
-
-                if (joinedRoomsId.includes(room.id)) {
-                    joinedRooms.push(room);
-                    socket.join(room.id);
-                } else {
-                    otherRooms.push(room);
-                }
-                
-            });
-            socket.emit('rooms', joinedRooms, otherRooms);
+            let joinedRooms = await Room.find({ '_id': {'$in': joinedRoomsId }}, { 'password': 0 });
+            joinedRoomsId.forEach( (roomId => socket.join(roomId)));
+            socket.emit('rooms', joinedRooms);
         });
         
         
@@ -78,9 +64,7 @@ function initializeSocketIO (httpServer, session) {
 
 function findMyRoomsIds (userId) {
     return RoomMember.find({ userID: userId }).then( (joinRequests) => {
-        
         return joinRequests.map( (joinRequest) => joinRequest.roomID);
-        
     });
 }
 
@@ -92,14 +76,8 @@ function joinRoom(userId, roomId) {
     io.in(userId).socketsJoin(roomId);
 }
 
-function announceCreatedRoom(neglectedUser, roomInfo) {
-    io.except(neglectedUser).emit('new room', roomInfo);
-    AllRooms.push(roomInfo);
-
-}
 module.exports = {
     joinRoom,
     announceJoiningRoom,
-    announceCreatedRoom, 
     initializeSocketIO
 }

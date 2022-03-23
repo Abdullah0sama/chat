@@ -44,7 +44,7 @@ function sendMessage (){
 // Socket events
 
 // Get joined rooms 
-socket.on('rooms', (joined, other) => {
+socket.on('rooms', (joined) => {
 
     joinedRoomsContainer.innerHTML = joined.map(room => roomNameNode(room, false)).join('');
     
@@ -198,7 +198,6 @@ joinModalForm.addEventListener('submit', (event) => {
         
         if (res.status == 200) {
             document.querySelector('#joinModal .btn-close').click();
-            document.querySelector(`.otherRooms [data-id='${roomId}']`).remove();
             return null;
         } else return res.json();
     }).then( (res) => {
