@@ -26,15 +26,15 @@ router.get('/', async (req, res) => {
 });
 
 // Join Room using room Id 
-router.post('/:roomID/join/', isAuthenticated, async (req, res) => {
+router.post('/:roomId/join/', isAuthenticated, async (req, res) => {
 
     const joinRequest = {
-        userID: req.session.user.id, 
-        roomID: req.params.roomID,
+        userId: req.session.user.id, 
+        roomId: req.params.roomId,
         password: req.body.roomPassword
     }
     try {
-        const foundRoom = await Room.findById(joinRequest.roomID);
+        const foundRoom = await Room.findById(joinRequest.roomId);
         if(foundRoom == null) 
             throw new UserError('Room not Found');
         
@@ -69,8 +69,8 @@ router.post('/', isAuthenticated, async (req, res) => {
         let createdRoomInfo = await Room.create([roomInfo], { password:0 });
         // Joining the created room 
         await RoomMember.create({
-                                roomID: createdRoomInfo[0]._id,
-                                userID: req.session.user.id
+                                roomId: createdRoomInfo[0]._id,
+                                userId: req.session.user.id
                             });
         return res.status(200).send({ msg: "Room created successfully" , room: createdRoomInfo[0] });
     } catch (err) {

@@ -43,7 +43,7 @@ function initializeSocketIO (httpServer, session) {
             msg.user = connectedUser.id;
             msg.time = Date.now();
             
-            RoomMember.findOne({ roomID: msg.room.id, userID: msg.user }).then( (foundRelation) => {
+            RoomMember.findOne({ roomId: msg.room.id, userId: msg.user }).then( (foundRelation) => {
                 
                 // Checking if the user is not joined in the room
                 if(foundRelation == null) return socket.emit('error', 'You are not joined in this room.');
@@ -58,7 +58,7 @@ function initializeSocketIO (httpServer, session) {
         });
         
         socket.on('watchRoom', async (roomId) => {
-            const membershipInfo = await RoomMember.findOne({ roomID: roomId, userID: connectedUser.id });
+            const membershipInfo = await RoomMember.findOne({ roomId: roomId, userId: connectedUser.id });
             console.log('Heeeeeeeeeeeeeeere', membershipInfo);
             if(!membershipInfo) return;
             console.log('socketJoin:', roomId);
@@ -70,8 +70,8 @@ function initializeSocketIO (httpServer, session) {
 }
 
 function findMyRoomsIds (userId) {
-    return RoomMember.find({ userID: userId }).then( (joinRequests) => {
-        return joinRequests.map( (joinRequest) => joinRequest.roomID);
+    return RoomMember.find({ userId: userId }).then( (joinRequests) => {
+        return joinRequests.map( (joinRequest) => joinRequest.roomId);
     });
 }
 

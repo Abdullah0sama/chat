@@ -198,8 +198,8 @@ joinModalForm.addEventListener('submit', (event) => {
         if (res.status == 200) {
             const membershipInfo = data.membershipInfo;
             document.querySelector('#joinModal .btn-close').click();
-            socket.emit('watchRoom', membershipInfo.roomID);
-            addNewRoom({ name: modalRoomName.value,  _id: membershipInfo.roomID })
+            socket.emit('watchRoom', membershipInfo.roomId);
+            addNewRoom({ name: modalRoomName.value,  _id: membershipInfo.roomId })
         } else {
             alertJoinModal.innerHTML = data.msg;
             alertJoinModal.classList.remove('d-none');
