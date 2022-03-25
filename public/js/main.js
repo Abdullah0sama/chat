@@ -14,8 +14,6 @@ const messages = {};
 let me;
 let joinedRooms = [];
 
-socket.emit('refresh rooms');
-
 sendBtn.addEventListener('click', sendMessage);
 
 // Sends a message when Enter is pressed
@@ -23,7 +21,7 @@ inputMessage.addEventListener('keypress', (event) => {
     if  (event.code == 'Enter' && selectedRoom.id) sendMessage();
 });
 
-function sendMessage (){
+function sendMessage() {
     let msg = {
         room: {
             id: selectedRoom.id
@@ -94,6 +92,8 @@ function selectRoom(event) {
     displayRoomMessages(selectedRoom.id);
 }
 
+
+
 function displayRoomName(name) {
     roomHeader.innerHTML = name;
 }
@@ -116,21 +116,22 @@ function roomNameNode(room, notJoined) {
 
 
 
-// Adds message to the storage and displays it if it belongs to the selected room
+// Adds message to storage and if it belongs to the selected room display it
 function addNewMessages(msg, roomId) {
     addMessageToStorage(msg, roomId);
-    if(selectedRoom.id == roomId) {
-        messagesGroup.innerHTML += msg.map(createMsgNode).join('');
-        messagesGroup.scrollTo(0, messagesGroup.scrollHeight);
-    }
+    if(selectedRoom.id == roomId) displayRecievedMsg(msg);
 }
-// display messages
+// Display recieved message
+function displayRecievedMsg(msg) {
+    messagesGroup.innerHTML += msg.map(createMsgNode).join('');
+    messagesGroup.scrollTo(0, messagesGroup.scrollHeight);
+}
+// Display stored messages
 function displayRoomMessages(roomId) {
     if (!messages[roomId]) return;
     messagesGroup.innerHTML = messages[roomId].map(createMsgNode).join('');
     messagesGroup.scrollTo(0, messagesGroup.scrollHeight);
 }
-
 // Add message to storage
 function addMessageToStorage(msg, roomId) {
     if(messages[roomId] == null) {
@@ -138,7 +139,6 @@ function addMessageToStorage(msg, roomId) {
     }
     messages[roomId].push(...msg);
 }
-
 // Create html tag for message
 function createMsgNode(msg) {
     const {time, user, body} = msg;
@@ -159,7 +159,6 @@ function dateFormat(time) {
     if ( time > Date.now() - 24 * 60 * 60 * 1000 ) return `${ messageTime.getHours() }:${ messageTime.getMinutes() }`
     else return messageTime.toDateString();
 }
-
 // Getting old messages 
 async function  getStoredMessages (roomId) {
     let messages = [];
@@ -194,12 +193,9 @@ joinModalForm.addEventListener('submit', (event) => {
         body: 'roomPassword='+encodeURIComponent(roomPassword)
     }).then( async (res) => {
         const data = await res.json();
-        console.log(data);
         if (res.status == 200) {
-            const membershipInfo = data.membershipInfo;
             document.querySelector('#joinModal .btn-close').click();
-            socket.emit('watchRoom', membershipInfo.roomId);
-            addNewRoom({ name: modalRoomName.value,  _id: membershipInfo.roomId })
+            listenToRoom({ _id: data.membershipInfo.roomId, name: modalRoomName.value });
         } else {
             alertJoinModal.innerHTML = data.msg;
             alertJoinModal.classList.remove('d-none');
@@ -220,9 +216,12 @@ joinModal.addEventListener('show.bs.modal', function(event) {
     
 });
 
-
-
-
+// Listen to room to get new message from it
+// Used after creating or joining a new room
+function listenToRoom(roomInfo) {
+    socket.emit('listenToRoom', roomInfo._id);
+    addNewRoom(roomInfo)
+}
 
 const modalCreateForm   = document.querySelector('#createModalForm');
 const alertCreateForm   = document.querySelector('#createModal .alert');
@@ -244,11 +243,9 @@ modalCreateForm.addEventListener('submit', (event) => {
         body: data
     }).then( async (res) => {
         const data = await res.json();
-        console.log(data);
         if (res.status == 200) {    
             document.querySelector('#createModal .btn-close').click();
-            socket.emit('watchRoom', data.room._id);
-            addNewRoom(data.room);
+            listenToRoom(data.room);
         }
         else {
             alertCreateForm.innerHTML = data.msg;
