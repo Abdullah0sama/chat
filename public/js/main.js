@@ -68,13 +68,11 @@ socket.once('whoami',  (user) => {
 });
 
 
-socket.on('joined new room', (roomData) => {
-
+function addNewRoom(roomData) {
     joinedRooms.push(roomData);
     joinedRoomsContainer.insertAdjacentHTML('beforeend', roomNameNode(roomData, false));
     getStoredMessages(roomData._id).then( (storedMsg) => addNewMessages(storedMsg, roomData._id));
-
-});
+};
 
 socket.onAny( (events, ...args) => {
     console.log(events, args);
@@ -194,16 +192,18 @@ joinModalForm.addEventListener('submit', (event) => {
             'Content-Type': 'application/x-www-form-urlencoded'
         },
         body: 'roomPassword='+encodeURIComponent(roomPassword)
-    }).then( (res) => {
-        
+    }).then( async (res) => {
+        const data = await res.json();
+        console.log(data);
         if (res.status == 200) {
+            const membershipInfo = data.membershipInfo;
             document.querySelector('#joinModal .btn-close').click();
-            return null;
-        } else return res.json();
-    }).then( (res) => {
-        if (!res) return;
-        alertJoinModal.innerHTML = res.msg;
-        alertJoinModal.classList.remove('d-none');
+            socket.emit('watchRoom', membershipInfo.roomID);
+            addNewRoom({ name: modalRoomName.value,  _id: membershipInfo.roomID })
+        } else {
+            alertJoinModal.innerHTML = data.msg;
+            alertJoinModal.classList.remove('d-none');
+        }
     })
     .catch( (err) => {
         console.log(err);
@@ -242,17 +242,18 @@ modalCreateForm.addEventListener('submit', (event) => {
             'Content-Type': 'application/x-www-form-urlencoded'
         },
         body: data
-    }).then( (res) => {
-        if (res.status == 200) {
+    }).then( async (res) => {
+        const data = await res.json();
+        console.log(data);
+        if (res.status == 200) {    
             document.querySelector('#createModal .btn-close').click();
-            return null;
+            socket.emit('watchRoom', data.room._id);
+            addNewRoom(data.room);
         }
-        else return res.json();
-    }).then( (json) => {
-        if(!json) return;
-        alertCreateForm.innerHTML = json.msg;
-        alertCreateForm.classList.remove('d-none');
-
+        else {
+            alertCreateForm.innerHTML = data.msg;
+            alertCreateForm.classList.remove('d-none');
+        }
     }).catch ( (err) => {
         console.log(err);
     });

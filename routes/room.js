@@ -10,7 +10,6 @@ const RoomMember                = require('../models/RoomMember.js');
 const Message                   = require('../models/Message.js');
 const SALTROUNDS                = 10
 
-const { joinRoom, announceJoiningRoom }  = require('../socketioEvents.js');
 
 
 // Get rooms according to query params
@@ -24,8 +23,8 @@ router.get('/', async (req, res) => {
         console.log(err);
         return res.status(500).send();
     }
-
 });
+
 // Join Room using room Id 
 router.post('/:roomID/join/', isAuthenticated, async (req, res) => {
 
@@ -35,7 +34,6 @@ router.post('/:roomID/join/', isAuthenticated, async (req, res) => {
         password: req.body.roomPassword
     }
     try {
-
         const foundRoom = await Room.findById(joinRequest.roomID);
         if(foundRoom == null) 
             throw new UserError('Room not Found');
@@ -44,18 +42,12 @@ router.post('/:roomID/join/', isAuthenticated, async (req, res) => {
             if (joinRequest.password == '' || !(await bcyrpt.compare(joinRequest.password, foundRoom.password))) 
                 throw new UserError('Wrong password');
         
-        await RoomMember.create( joinRequest );
-        
-        announceJoiningRoom(req.session.user.id, foundRoom);
-        joinRoom(req.session.user.id, foundRoom._id);
-        console.log(req.session.user.id, foundRoom);
-        return res.status(200).send({ msg: "Joined Successfully" });
-
+        const membershipInfo = await RoomMember.create( joinRequest );
+        return res.status(200).send({ msg: "Joined Successfully",  membershipInfo: membershipInfo });
     } catch (err) {
         console.log(err);
         if (err instanceof UserError) return res.status(422).send({ msg: err.message });
         else return res.status(500).send();
-
     };
 
 });
@@ -74,18 +66,13 @@ router.post('/', isAuthenticated, async (req, res) => {
             roomInfo.password = await bcyrpt.hash(roomInfo.password, SALTROUNDS);
 
         // Creating room
-        let createdRoomInfo = await Room.create(roomInfo);
-
+        let createdRoomInfo = await Room.create([roomInfo], { password:0 });
         // Joining the created room 
         await RoomMember.create({
-                                roomID: createdRoomInfo._id,
+                                roomID: createdRoomInfo[0]._id,
                                 userID: req.session.user.id
                             });
-        
-        announceJoiningRoom(req.session.user.id, createdRoomInfo);
-        joinRoom(req.session.user.id, createdRoomInfo._id);
-
-        return res.status(200).send({ msg: "Room created successfully" });
+        return res.status(200).send({ msg: "Room created successfully" , room: createdRoomInfo[0] });
     } catch (err) {
         console.log(err);
         if (err instanceof Joi.ValidationError) return res.status(422).send({ msg: err.message });
@@ -104,5 +91,13 @@ router.get('/:roomId', isAuthenticated, (req, res) => {
     });
 
 });
+
+class UserError extends Error {
+    constructor (message) {
+        super(message);
+        Object.setPrototypeOf(this, new.target.prototype);
+        Error.captureStackTrace(this);
+    }
+}
 
 module.exports = router;

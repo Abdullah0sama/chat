@@ -57,6 +57,13 @@ function initializeSocketIO (httpServer, session) {
             
         });
         
+        socket.on('watchRoom', async (roomId) => {
+            const membershipInfo = await RoomMember.findOne({ roomID: roomId, userID: connectedUser.id });
+            console.log('Heeeeeeeeeeeeeeere', membershipInfo);
+            if(!membershipInfo) return;
+            console.log('socketJoin:', roomId);
+            socket.join(roomId);
+        });
         console.log(`User ${connectedUser.username} is connected`);
     });
     
@@ -68,16 +75,7 @@ function findMyRoomsIds (userId) {
     });
 }
 
-function announceJoiningRoom(userId, roomInfo) {
-    io.in(userId).emit('joined new room', roomInfo);
-
-}
-function joinRoom(userId, roomId) {
-    io.in(userId).socketsJoin(roomId);
-}
 
 module.exports = {
-    joinRoom,
-    announceJoiningRoom,
     initializeSocketIO
 }
