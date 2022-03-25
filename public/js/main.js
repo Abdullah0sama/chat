@@ -169,23 +169,59 @@ async function  getStoredMessages (roomId) {
 }
 
 
+const joinHandler = {
+    'modal': document.querySelector('#joinModal'),
+    'roomNameN': document.querySelector('#modal-room-name'),
+    'roomId': document.querySelector('#modal-room-id'),
+    'roomPasswordNode': document.querySelector('#modal-room-password'),
+    'roomPasswordNodeInput': document.querySelector('#modal-room-password input'),
+    'alertNode': document.querySelector('#joinModal .alert'),
+    showAlert: function(msg) {
+        this.alertNode.innerHTML = msg;
+        this.alertNode.classList.remove('d-none');
+    }, 
+    hideAlert: function() {
+        this.alertNode.classList.add('d-none');
+    } ,
+    getRoomInfo: function() {
+        return {
+            password: this.roomPasswordNodeInput.value, 
+            _id: this.roomId.value, 
+            status: this.room_status, 
+            name: this.roomNameN.value
+        }
+        
+    }
+}
 
-const joinModal                 = document.querySelector('#joinModal');
-const modalRoomName             = document.querySelector('#modal-room-name');
-const modalRoomId               = document.querySelector('#modal-room-id');
-const modalRoomPassword         = document.querySelector('#modal-room-password');
-const modalRoomPasswordInput    = document.querySelector('#modal-room-password input');
-const joinModalForm             = document.querySelector('#joinModalForm');
-const alertJoinModal            = document.querySelector('#joinModal .alert');
-
-joinModalForm.addEventListener('submit', (event) => {
+document.querySelector('#joinModalForm').addEventListener('submit', (event) => {
     event.preventDefault();
-    alertJoinModal.classList.add('d-none');
+    
+    let roomInfo = joinHandler.getRoomInfo();
+    sendJoinRequest(roomInfo._id, roomInfo.password)
+    .then((data) => { 
+        document.querySelector('#joinModal .btn-close').click();
+        listenToRoom(roomInfo);
+    })
+    .catch((err) => {
+        joinHandler.showAlert(err); 
+    });
+});
 
-    const data = new FormData(event.target);
-    const roomId = data.get('roomId');
-    const roomPassword = data.get('password');
-    fetch(`/room/${roomId}/join`, {
+// Setting values of form
+joinHandler.modal.addEventListener('show.bs.modal', function(event) {
+    joinHandler.hideAlert();
+    let button = event.relatedTarget;
+    joinHandler.roomNameN.value = button.dataset.room_name;
+    joinHandler.roomId.value = button.dataset.room_id;
+    joinHandler.roomPasswordNodeInput.value = '';
+    joinHandler.room_status = button.dataset.room_status;
+    if (joinHandler.room_status == 'private') joinHandler.roomPasswordNode.classList.remove('d-none');
+    else joinHandler.roomPasswordNode.classList.add('d-none');
+});
+
+function sendJoinRequest(roomId, roomPassword) {
+    return fetch(`/room/${roomId}/join`, {
         method: 'POST', 
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
@@ -194,27 +230,62 @@ joinModalForm.addEventListener('submit', (event) => {
     }).then( async (res) => {
         const data = await res.json();
         if (res.status == 200) {
-            document.querySelector('#joinModal .btn-close').click();
-            listenToRoom({ _id: data.membershipInfo.roomId, name: modalRoomName.value });
+            return data;
         } else {
-            alertJoinModal.innerHTML = data.msg;
-            alertJoinModal.classList.remove('d-none');
+            throw data.msg;
         }
+    });
+}
+
+const createHandler = {
+    'alert': document.querySelector('#createModal .alert'),
+    'hideAlert': function() { this.alert.classList.add('d-none'); },
+    'showAlert': function(msg) {
+        this.alert.innerHTML = msg;
+        this.alert.classList.remove('d-none');
+    },
+    form: document.querySelector('#createModalForm')
+}
+
+createHandler.form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    
+    const data = new URLSearchParams( new FormData(event.target) );
+    if (!data.has('room[status]')) data.set('room[status]', 'public'), data.delete('room[password]');
+    sendRoomCreationRequest(data)
+    .then((data) => {
+        document.querySelector('#createModal .btn-close').click();
+        listenToRoom(data.room);
     })
-    .catch( (err) => {
-        console.log(err);
+    .catch((err) => {
+        createHandler.showAlert(err);
     });
 });
-joinModal.addEventListener('show.bs.modal', function(event) {
-    alertJoinModal.classList.add('d-none');
-    let button = event.relatedTarget;
-    modalRoomName.value = button.dataset.room_name;
-    modalRoomId.value = button.dataset.room_id;
-    modalRoomPasswordInput.value = '';
-    if (button.dataset.room_status == 'private') modalRoomPassword.classList.remove('d-none');
-    else if (button.dataset.room_status == 'public') modalRoomPassword.classList.add('d-none');
-    
+
+function sendRoomCreationRequest(roomInfo) {
+    return fetch('/room', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: roomInfo
+    }).then( async (res) => {
+        const data = await res.json();
+        if (res.status == 200) {   
+            return data; 
+        }
+        else {
+            throw data.msg;
+        }
+    });
+}
+
+// Clearing values previous request
+document.querySelector('#createModal').addEventListener('show.bs.modal', function(event) {
+    createHandler.hideAlert();
+    modalCreateForm.reset();
 });
+
 
 // Listen to room to get new message from it
 // Used after creating or joining a new room
@@ -222,47 +293,6 @@ function listenToRoom(roomInfo) {
     socket.emit('listenToRoom', roomInfo._id);
     addNewRoom(roomInfo)
 }
-
-const modalCreateForm   = document.querySelector('#createModalForm');
-const alertCreateForm   = document.querySelector('#createModal .alert');
-const createModal       = document.querySelector('#createModal');
-const createPassword    = document.querySelector('#createModal #createPassword');
-const createName        = document.querySelector('#createModal #createName');
-
-modalCreateForm.addEventListener('submit', (event) => {
-    event.preventDefault();
-    alertCreateForm.classList.add('d-none');
-
-    const data = new URLSearchParams( new FormData(event.target) );
-    if (!data.has('room[status]')) data.set('room[status]', 'public'), data.delete('room[password]');
-    fetch('/room', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: data
-    }).then( async (res) => {
-        const data = await res.json();
-        if (res.status == 200) {    
-            document.querySelector('#createModal .btn-close').click();
-            listenToRoom(data.room);
-        }
-        else {
-            alertCreateForm.innerHTML = data.msg;
-            alertCreateForm.classList.remove('d-none');
-        }
-    }).catch ( (err) => {
-        console.log(err);
-    });
-});
-
-
-createModal.addEventListener('show.bs.modal', function(event) {
-    alertCreateForm.classList.add('d-none');
-    createPassword.value = '';
-    createName.value = '';
-});
-
 
 // Explored Button modal 
 const searchRoomsInput = document.querySelector('#searchRoomsInput')
