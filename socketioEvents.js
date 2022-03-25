@@ -32,17 +32,17 @@ function initializeSocketIO (httpServer, session) {
         socket.emit('whoami', { username: connectedUser.username });
         
         socket.on('chat message', (msg) => {
-            RoomMember.findOne({ roomId: msg.room.id, userId: connectedUser.id }).then( (foundRelation) => {
-                // Checking if the user is not joined in the room
-                if(foundRelation == null) return socket.emit('error', 'You are not joined in this room.');
-                msg.time = Date.now();
-                msg.user = connectedUser.id;
-                // Saving message to the database
-                Message.create(msg).catch( (err) => console.log(err) );
-                msg.user = connectedUser;
-                // Emiting message to all other users in the room
-                socket.to(msg.room.id).emit('chat message', msg);
-            });
+            isRoomJoined = connectedUser.joinedRooms.find(room => room.id == msg.room.id);
+            // Checking if the user is not joined in the room
+            if(!isRoomJoined) return socket.emit('error', 'You are not joined in this room.');
+            
+            msg.time = Date.now();
+            msg.user = connectedUser.id;
+            // Saving message to the database
+            Message.create(msg).catch( (err) => console.log(err) );
+            msg.user = connectedUser;
+            // Emiting message to all other users in the room
+            socket.to(msg.room.id).emit('chat message', msg);
             
         });
         
