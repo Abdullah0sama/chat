@@ -22,53 +22,53 @@ function initializeSocketIO (httpServer, session) {
         console.log(connectedUser);
         socket.join(connectedUser.id);
 
-        socket.on('refresh rooms', async () => {
-            
-            let joinedRoomsId = await findMyRoomsIds(connectedUser.id);
-            let joinedRooms = await Room.find({ '_id': {'$in': joinedRoomsId }}, { 'password': 0 });
-            joinedRoomsId.forEach( (roomId => socket.join(roomId)));
-            socket.emit('rooms', joinedRooms);
+        getJoinedRooms(connectedUser.id).then( (rooms) => {
+            connectedUser.joinedRooms = rooms;
+            console.log(rooms);
+            rooms.forEach( (room => socket.join(room.id)));
+            socket.emit('rooms', rooms);        
         });
-        
         
         socket.emit('whoami', { username: connectedUser.username });
         
+        socket.on('chat message', (msg) => {
+            isRoomJoined = connectedUser.joinedRooms.find(room => room.id == msg.room.id);
+            // Checking if the user is not joined in the room
+            if(!isRoomJoined) return socket.emit('error', 'You are not joined in this room.');
+            
+            msg.time = Date.now();
+            msg.user = connectedUser.id;
+            // Saving message to the database
+            Message.create(msg).catch( (err) => console.log(err) );
+            msg.user = connectedUser;
+            // Emiting message to all other users in the room
+            socket.to(msg.room.id).emit('chat message', msg);
+            
+        });
+        
+        socket.on('listenToRoom', async (roomId) => {
+            const membershipInfo = await RoomMember.findOne({ roomId: roomId, userId: connectedUser.id });
+            if(!membershipInfo) return;
+            socket.join(roomId);
+            let room = await Room.findById(roomId)
+            connectedUser.joinedRooms.push(room);
+
+        });
+
         socket.on('disconnect', () => {
             console.log(`User ${connectedUser.username} Disconnected`);
         });
         
-        socket.on('chat message', (msg) => {
-            if(msg.body == '') return; 
-            // Not trusting the user
-            msg.user = connectedUser.id;
-            msg.time = Date.now();
-            
-            RoomMember.findOne({ roomId: msg.room.id, userId: msg.user }).then( (foundRelation) => {
-                
-                // Checking if the user is not joined in the room
-                if(foundRelation == null) return socket.emit('error', 'You are not joined in this room.');
-    
-                // Saving message to the database
-                Message.create(msg).catch( (err) => console.log(err) );
-                msg.user = connectedUser;
-                // Emiting message to all other users in the room
-                socket.to(msg.room.id).emit('chat message', msg);
-            });
-            
-        });
-        
-        socket.on('watchRoom', async (roomId) => {
-            const membershipInfo = await RoomMember.findOne({ roomId: roomId, userId: connectedUser.id });
-            console.log('Heeeeeeeeeeeeeeere', membershipInfo);
-            if(!membershipInfo) return;
-            console.log('socketJoin:', roomId);
-            socket.join(roomId);
-        });
         console.log(`User ${connectedUser.username} is connected`);
     });
     
 }
 
+
+async function getJoinedRooms(userId) {
+        let joinedRoomsId = await findMyRoomsIds(userId);
+        return await Room.find({ '_id': {'$in': joinedRoomsId }}, { 'password': 0 });    
+}
 function findMyRoomsIds (userId) {
     return RoomMember.find({ userId: userId }).then( (joinRequests) => {
         return joinRequests.map( (joinRequest) => joinRequest.roomId);
