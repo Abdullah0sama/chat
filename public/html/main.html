@@ -13,7 +13,7 @@
 <body>
     
     <div class="container">
-        <ul class="nav justify-content-end">
+        <ul class="nav justify-content-center justify-content-md-end">
             <li class="nav-item">
                 <a href="#" class="nav-link text-secondary btn">Hi, <span id="display-username"></span></a>
             </li>
@@ -33,13 +33,13 @@
                 </form>
             </li>
         </ul>
-        <div class="d-flex  chat-box">
-            <div class="rooms bg-dark w-25 d-flex flex-column">         
+        <div class="row m-0 justify-content-center chat-box">
+            <div class="rooms bg-dark col-12 col-md-4 d-flex flex-column p-0 ">         
                 <h3 class="text-center p-3 my-0 bg-dark text-light border-bottom border-info">Joined Rooms</h3>
-                <div class="joinedRooms overflow-auto"></div>
+                <div class="joinedRooms overflow-auto" id="roomNamesCollapse"></div>
             </div>
             
-            <div class="chat bg-dark w-75 d-flex flex-column">
+            <div class="chat bg-dark col-12 col-md-8 d-flex flex-column p-0">
                 <h3 class="text-light border-bottom border-info p-3 room-header m-0"> Welcome </h3>
                 <div class="chat-messages flex-fill overflow-auto">
                 </div>
